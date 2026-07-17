@@ -1,0 +1,21 @@
+{
+  "name": "@signets/extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "build": "esbuild src/content.ts --bundle --format=iife --outfile=public/content.js && esbuild src/background.ts --bundle --format=esm --outfile=public/background.js && esbuild src/popup.ts --bundle --format=iife --outfile=public/popup.js"
+  },
+  "dependencies": {
+    "@signets/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.313",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3"
+  }
+}

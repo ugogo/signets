@@ -1,0 +1,10 @@
+node_modules
+dist
+.output
+.wrangler
+coverage
+packages/shared/dist
+.agents
+pnpm-lock.yaml
+**/routeTree.gen.ts
+apps/extension/public/*.js

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: signets-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && corepack prepare pnpm@10.33.0 --activate && pnpm install --frozen-lockfile && pnpm --filter @signets/shared build && pnpm --filter @signets/api build
+    startCommand: pnpm --filter @signets/api start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SYNC_TOKEN
+        sync: false
+      - key: USER_SLUG
+        value: default
+      - key: WEB_ORIGIN
+        sync: false

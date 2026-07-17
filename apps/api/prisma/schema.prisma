@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  shots     Shot[]
+}
+
+model Shot {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  xPostId        String
+  imageUrl       String
+  hostedImageKey String?
+  imageIndex     Int
+  authorHandle   String
+  authorName     String?
+  caption        String?
+  bookmarkedAt   DateTime @db.Timestamptz(6)
+  isFavorite     Boolean  @default(false)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, xPostId, imageIndex])
+  @@index([userId, bookmarkedAt])
+  @@index([userId, authorHandle])
+}
