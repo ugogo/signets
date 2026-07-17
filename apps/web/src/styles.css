@@ -1,15 +1,18 @@
 @import 'tailwindcss';
+@import 'pickle-ui/styles.css';
 
-* {
-  box-sizing: border-box;
+@theme {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
-html,
-body,
-#app {
-  min-height: 100%;
-}
+@layer base {
+  html {
+    @apply font-sans antialiased;
+  }
 
-body {
-  margin: 0;
+  body {
+    @apply bg-background text-foreground;
+  }
 }

@@ -5,14 +5,16 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+const isStorybook = process.env.STORYBOOK === 'true';
+
 const config = defineConfig(({ mode }) => ({
   plugins: [
-    devtools(),
-    ...(mode === 'test'
-      ? []
-      : [cloudflare({ viteEnvironment: { name: 'ssr' } })]),
+    ...(!isStorybook ? [devtools()] : []),
+    ...(!isStorybook && mode !== 'test'
+      ? [cloudflare({ viteEnvironment: { name: 'ssr' } })]
+      : []),
     tailwindcss(),
-    tanstackStart(),
+    ...(!isStorybook ? [tanstackStart()] : []),
     viteReact(),
   ],
   resolve: { tsconfigPaths: true },

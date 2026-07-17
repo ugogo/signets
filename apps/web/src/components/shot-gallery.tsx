@@ -1,26 +1,49 @@
 import type { Shot } from '@signets/shared';
 
+import { Card } from 'pickle-ui/card';
+import { Text } from 'pickle-ui/text';
 import { useMemo } from 'react';
 
 import { xThumbnailUrl } from '../lib/api';
 
 interface GalleryProps {
   density: number;
+  error?: Error | null;
+  isLoading?: boolean;
   shots: Shot[];
 }
 
-export function ShotGallery({ density, shots }: GalleryProps) {
+export function ShotGallery({
+  density,
+  error = null,
+  isLoading = false,
+  shots,
+}: GalleryProps) {
   const columnWidth = useMemo(() => {
     const min = 120;
     const max = 420;
     return Math.round(min + ((max - min) * density) / 100);
   }, [density]);
 
+  if (isLoading) {
+    return <Text tone="muted">Loading library…</Text>;
+  }
+
+  if (error) {
+    return (
+      <Text className="text-destructive">
+        Could not reach the API. Start the NestJS server on port 3001.
+      </Text>
+    );
+  }
+
   if (shots.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-12 text-center text-zinc-400">
-        No shots yet. Sync bookmarks from the companion extension.
-      </div>
+      <Card className="border-dashed p-12 text-center">
+        <Text tone="muted">
+          No shots yet. Sync bookmarks from the companion extension.
+        </Text>
+      </Card>
     );
   }
 
@@ -33,8 +56,8 @@ export function ShotGallery({ density, shots }: GalleryProps) {
       }}
     >
       {shots.map((shot) => (
-        <article
-          className="mb-3 break-inside-avoid overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-sm"
+        <Card
+          className="mb-3 break-inside-avoid overflow-hidden shadow-sm"
           key={shot.id}
         >
           <a
@@ -45,7 +68,7 @@ export function ShotGallery({ density, shots }: GalleryProps) {
           >
             <img
               alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-              className="block w-full bg-zinc-950 object-cover"
+              className="block w-full bg-background object-cover"
               loading="lazy"
               src={xThumbnailUrl(
                 shot.imageUrl,
@@ -53,13 +76,15 @@ export function ShotGallery({ density, shots }: GalleryProps) {
               )}
             />
           </a>
-          <div className="space-y-1 px-3 py-2 text-sm">
-            <p className="font-medium text-zinc-100">@{shot.authorHandle}</p>
+          <Card.Content className="space-y-1 px-3 py-2 text-sm">
+            <Text weight="bold">@{shot.authorHandle}</Text>
             {shot.caption ? (
-              <p className="line-clamp-2 text-zinc-400">{shot.caption}</p>
+              <Text className="line-clamp-2" tone="muted">
+                {shot.caption}
+              </Text>
             ) : null}
-          </div>
-        </article>
+          </Card.Content>
+        </Card>
       ))}
     </div>
   );

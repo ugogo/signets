@@ -7,6 +7,7 @@
     "postinstall": "pnpm --filter @signets/shared build",
     "dev": "pnpm --filter @signets/shared build && pnpm -r --parallel dev",
     "dev:web": "pnpm --filter @signets/web dev",
+    "storybook": "pnpm --filter @signets/web storybook",
     "dev:api": "pnpm --filter @signets/api dev",
     "build": "pnpm --filter @signets/shared build && pnpm -r --filter !@signets/shared build",
     "typecheck": "pnpm -r typecheck",

@@ -7,6 +7,9 @@ import {
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
+import '@fontsource-variable/geist/wght.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+
 import { AppProviders } from '../components/app-providers';
 import appCss from '../styles.css?url';
 
@@ -36,7 +39,7 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   return (
-    <html lang="en">
+    <html className="dark" lang="en">
       <head>
         <HeadContent />
       </head>
