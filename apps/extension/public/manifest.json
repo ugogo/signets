@@ -3,17 +3,27 @@
   "name": "Signets Sync",
   "description": "Sync X bookmarks into Signets",
   "version": "0.1.0",
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": ["storage", "scripting", "activeTab", "tabs"],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
-    "http://localhost:3001/*"
+    "http://localhost:3001/*",
+    "https://signets-api.onrender.com/*"
   ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/i/bookmarks*",
+        "https://twitter.com/i/bookmarks*"
+      ],
+      "js": ["page-interceptor.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": [
         "https://x.com/i/bookmarks*",

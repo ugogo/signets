@@ -1,11 +1,13 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module.js';
 import { type Env, parseWebOrigins } from './config/env.schema.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useBodyParser('json', { limit: '1mb' });
   app.enableShutdownHooks();
 
   const httpAdapter = app.getHttpAdapter().getInstance() as {

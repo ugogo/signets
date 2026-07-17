@@ -1,71 +1,393 @@
-import type { SyncResult } from '@signets/shared';
+import type { SyncPayload, SyncResult } from '@signets/shared';
 
-import { isExtensionMessage, isGetCapturedShotsResponse } from './messages.js';
+import { BOOKMARKS_URL, SYNC_BATCH_SIZE, type SyncState } from './constants.js';
+import { appendLog, clearLogs, getLogs } from './log.js';
+import {
+  isAutoScrollResponse,
+  isExtensionMessage,
+  isGetCapturedShotsResponse,
+} from './messages.js';
+import { loadSettings } from './settings.js';
+import { SyncRequestError, uploadSyncBatch, verifySyncCredentials } from './sync-client.js';
 
-type Settings = {
-  apiUrl: string;
-  syncToken: string;
+type CaptureResult = {
+  count: number;
+  stopped: boolean;
+  tabId: number;
 };
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!isExtensionMessage(message) || message.type !== 'sync-now') {
+let syncState: SyncState = 'idle';
+let activeSyncTabId: number | undefined;
+let stopRequested = false;
+let syncInProgress = false;
+
+function setSyncState(state: SyncState): void {
+  syncState = state;
+  void chrome.runtime.sendMessage({ state, type: 'sync-state-changed' }).catch(
+    () => undefined,
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isBookmarksUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+    return (
+      (parsed.hostname === 'x.com' || parsed.hostname === 'twitter.com') &&
+      parsed.pathname.startsWith('/i/bookmarks')
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function waitForTabLoad(tabId: number, timeoutMs = 15_000): Promise<void> {
+  const tab = await chrome.tabs.get(tabId);
+  if (tab.status === 'complete') {
     return;
   }
 
-  void (async () => {
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      reject(new Error('Bookmarks page load timed out.'));
+    }, timeoutMs);
+
+    const listener = (
+      updatedTabId: number,
+      changeInfo: chrome.tabs.TabChangeInfo,
+    ) => {
+      if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        clearTimeout(timeout);
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
+
+async function sendTabMessageWithRetry<T>(
+  tabId: number,
+  message: unknown,
+  retries = 5,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      return (await chrome.tabs.sendMessage(tabId, message)) as T;
+    } catch (error) {
+      lastError = error;
+      await sleep(500 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
+async function findOrOpenBookmarksTab(): Promise<chrome.tabs.Tab> {
+  const tabs = await chrome.tabs.query({});
+  const existing = tabs.find((tab) => isBookmarksUrl(tab.url));
+
+  if (existing?.id) {
+    appendLog('info', 'Using existing bookmarks tab.');
+    await chrome.tabs.update(existing.id, { active: true });
+    return existing;
+  }
+
+  appendLog('info', 'Opening bookmarks page…');
+  const created = await chrome.tabs.create({
+    active: true,
+    url: BOOKMARKS_URL,
+  });
+
+  if (!created.id) {
+    throw new Error('Could not open bookmarks tab.');
+  }
+
+  return created;
+}
+
+async function runAutoScroll(tabId: number): Promise<{ count: number; stopped: boolean }> {
+  activeSyncTabId = tabId;
+  setSyncState('scrolling');
+
+  const response = await sendTabMessageWithRetry<unknown>(tabId, {
+    type: 'start-auto-scroll',
+  });
+
+  if (!isAutoScrollResponse(response)) {
+    throw new Error('Auto-scroll did not return a valid response.');
+  }
+
+  return response;
+}
+
+async function getCapturedShots(tabId: number): Promise<SyncPayload['shots']> {
+  const captured: unknown = await chrome.tabs.sendMessage(tabId, {
+    type: 'get-captured-shots',
+  });
+
+  return isGetCapturedShotsResponse(captured) ? captured.shots : [];
+}
+
+async function captureBookmarks(label: string): Promise<CaptureResult> {
+  appendLog('info', `${label}: opening bookmarks page…`);
+
+  const tab = await findOrOpenBookmarksTab();
+  if (!tab.id) {
+    throw new Error('Could not access bookmarks tab.');
+  }
+
+  await waitForTabLoad(tab.id);
+  appendLog('info', 'Reloading bookmarks page to capture fresh data…');
+  await chrome.tabs.reload(tab.id);
+  await waitForTabLoad(tab.id);
+  await sleep(1500);
+
+  let scrollResult: { count: number; stopped: boolean };
+  try {
+    scrollResult = await runAutoScroll(tab.id);
+  } catch {
+    appendLog(
+      'error',
+      'Could not connect to bookmarks page. Reload and retry.',
+    );
+    throw new Error('Could not connect to bookmarks page. Reload and retry.');
+  }
+
+  if (scrollResult.stopped || stopRequested) {
+    appendLog(
+      'info',
+      `Stopped by user — captured ${scrollResult.count} shots.`,
+    );
+  } else {
+    appendLog('info', `Capture complete: ${scrollResult.count} shots.`);
+  }
+
+  return { ...scrollResult, tabId: tab.id };
+}
+
+async function uploadShots(
+  settings: Awaited<ReturnType<typeof loadSettings>>,
+  tabId: number,
+): Promise<{ captured: number; result: SyncResult }> {
+  setSyncState('uploading');
+
+  const shots = await getCapturedShots(tabId);
+
+  if (shots.length === 0) {
+    throw new Error('No photo shots found in bookmarks.');
+  }
+
+  const batches = chunkShots(shots, SYNC_BATCH_SIZE);
+  appendLog(
+    'info',
+    `Uploading ${shots.length} shots in ${batches.length} batch${batches.length === 1 ? '' : 'es'}…`,
+  );
+
+  let upserted = 0;
+
+  for (let index = 0; index < batches.length; index += 1) {
+    const batch = batches[index]!;
+    appendLog(
+      'info',
+      `Uploading batch ${index + 1}/${batches.length} (${batch.length} shots)…`,
+    );
+
+    try {
+      const result = await uploadSyncBatch(settings, batch);
+      upserted += result.upserted;
+    } catch (error) {
+      if (error instanceof SyncRequestError) {
+        throw new SyncRequestError(
+          `Upload failed on batch ${index + 1}/${batches.length} — ${error.message}`,
+          error.status,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  return { captured: shots.length, result: { upserted } };
+}
+
+function chunkShots<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    batches.push(items.slice(index, index + size));
+  }
+
+  return batches;
+}
+
+async function runSync(sendResponse: (response: unknown) => void): Promise<void> {
+  if (syncInProgress) {
+    sendResponse({ error: 'Sync already in progress.', ok: false });
+    return;
+  }
+
+  syncInProgress = true;
+  stopRequested = false;
+  activeSyncTabId = undefined;
+
+  try {
+    appendLog('info', 'Starting sync…');
+
     const settings = await loadSettings();
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (!tab?.id) {
-      sendResponse({ error: 'Open your X bookmarks tab first.', ok: false });
+    if (!settings.syncToken) {
+      appendLog('error', 'Sync token is missing. Save settings first.');
+      sendResponse({ error: 'Sync token is missing.', ok: false });
       return;
     }
 
-    const captured: unknown = await chrome.tabs.sendMessage(tab.id, {
-      type: 'get-captured-shots',
-    });
-    const shots = isGetCapturedShotsResponse(captured) ? captured.shots : [];
+    appendLog('info', 'Verifying sync token…');
+    await verifySyncCredentials(settings);
 
-    if (shots.length === 0) {
+    const capture = await captureBookmarks('Sync');
+
+    if (capture.count === 0) {
+      appendLog('warn', 'No photo shots found in bookmarks.');
       sendResponse({
-        error: 'No shots captured yet. Scroll your bookmarks page, then retry.',
+        error: 'No photo shots found. Log into X and bookmark some photos.',
         ok: false,
       });
       return;
     }
 
-    const response = await fetch(`${settings.apiUrl}/sync`, {
-      body: JSON.stringify({ shots } satisfies { shots: unknown[] }),
-      headers: {
-        Authorization: `Bearer ${settings.syncToken}`,
-        'Content-Type': 'application/json',
-      },
-      method: 'POST',
-    });
+    const { captured, result } = await uploadShots(settings, capture.tabId);
+    appendLog('success', `Synced ${result.upserted} shots (${captured} captured).`);
+    sendResponse({ captured, ok: true, result });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Sync failed unexpectedly.';
+    appendLog('error', message);
+    sendResponse({ error: message, ok: false });
+  } finally {
+    syncInProgress = false;
+    stopRequested = false;
+    activeSyncTabId = undefined;
+    setSyncState('idle');
+  }
+}
 
-    if (!response.ok) {
-      sendResponse({ error: `Sync failed (${response.status})`, ok: false });
+async function runDryRun(sendResponse: (response: unknown) => void): Promise<void> {
+  if (syncInProgress) {
+    sendResponse({ error: 'Sync already in progress.', ok: false });
+    return;
+  }
+
+  syncInProgress = true;
+  stopRequested = false;
+  activeSyncTabId = undefined;
+
+  try {
+    appendLog('info', 'Starting dry run (no upload)…');
+
+    const capture = await captureBookmarks('Dry run');
+    const shots = await getCapturedShots(capture.tabId);
+
+    if (shots.length === 0) {
+      appendLog('warn', 'No photo shots found in bookmarks.');
+      sendResponse({
+        error: 'No photo shots found. Log into X and bookmark some photos.',
+        ok: false,
+      });
       return;
     }
 
-    const result = (await response.json()) as SyncResult;
-    sendResponse({ captured: shots.length, ok: true, result });
-  })();
-
-  return true;
-});
-
-async function loadSettings(): Promise<Settings> {
-  const stored = await chrome.storage.sync.get(['apiUrl', 'syncToken']);
-  return {
-    apiUrl:
-      typeof stored.apiUrl === 'string'
-        ? stored.apiUrl
-        : 'http://localhost:3001',
-    syncToken: typeof stored.syncToken === 'string' ? stored.syncToken : '',
-  };
+    appendLog('success', `Dry run complete: ${shots.length} shots ready to sync.`);
+    sendResponse({
+      captured: shots.length,
+      ok: true,
+      payload: { shots },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Dry run failed unexpectedly.';
+    appendLog('error', message);
+    sendResponse({ error: message, ok: false });
+  } finally {
+    syncInProgress = false;
+    stopRequested = false;
+    activeSyncTabId = undefined;
+    setSyncState('idle');
+  }
 }
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!isExtensionMessage(message)) {
+    return;
+  }
+
+  if (message.type === 'get-logs') {
+    sendResponse({ logs: getLogs() });
+    return;
+  }
+
+  if (message.type === 'clear-logs') {
+    clearLogs();
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === 'get-sync-state') {
+    sendResponse({ state: syncState });
+    return;
+  }
+
+  if (message.type === 'bookmarks-intercepted') {
+    appendLog(
+      'info',
+      `Intercepted bookmarks API (${message.entries} entries, ${message.parsed} photos, ${message.total} total).`,
+    );
+    return;
+  }
+
+  if (message.type === 'shots-captured') {
+    appendLog('info', `Scrolling… ${message.count} shots captured.`);
+    return;
+  }
+
+  if (message.type === 'stop-sync') {
+    if (!syncInProgress || syncState !== 'scrolling' || !activeSyncTabId) {
+      sendResponse({ ok: false });
+      return;
+    }
+
+    stopRequested = true;
+    appendLog('info', 'Stop requested…');
+
+    void chrome.tabs
+      .sendMessage(activeSyncTabId, { type: 'stop-auto-scroll' })
+      .catch(() => undefined);
+
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === 'dry-run') {
+    void runDryRun(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'sync-now') {
+    void runSync(sendResponse);
+    return true;
+  }
+
+  return;
+});
 
 export {};

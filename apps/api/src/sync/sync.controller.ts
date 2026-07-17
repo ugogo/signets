@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -15,8 +16,14 @@ import { SyncService } from './sync.service.js';
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}
 
+  @Get('verify')
+  @UseGuards(SyncTokenGuard)
+  verify() {
+    return { ok: true };
+  }
+
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @UseGuards(SyncTokenGuard)
   async sync(@Body() body: unknown) {
     const parsed = syncPayloadSchema.safeParse(body);

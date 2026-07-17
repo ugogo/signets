@@ -8,7 +8,7 @@
         font-family: system-ui, sans-serif;
         margin: 0;
         padding: 16px;
-        width: 280px;
+        width: 300px;
         background: #09090b;
         color: #f4f4f5;
       }
@@ -26,6 +26,30 @@
         color: inherit;
         padding: 8px 10px;
       }
+      .env-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .env-toggle button {
+        border: 1px solid #3f3f46;
+        border-radius: 8px;
+        background: #18181b;
+        color: #a1a1aa;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+      .env-toggle button.active {
+        background: #27272a;
+        border-color: #52525b;
+        color: #f4f4f5;
+      }
+      .hidden {
+        display: none;
+      }
       button {
         width: 100%;
         border: 0;
@@ -36,26 +60,136 @@
         padding: 10px 12px;
         cursor: pointer;
       }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      #stop,
+      #dryRun {
+        margin-top: 8px;
+        background: #27272a;
+        border: 1px solid #52525b;
+        color: #f4f4f5;
+      }
+      #dryRunPreview {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #a1a1aa;
+      }
+      #dryRunPreview summary {
+        cursor: pointer;
+        user-select: none;
+      }
+      #dryRunPayload {
+        margin: 8px 0 0;
+        padding: 8px;
+        max-height: 180px;
+        overflow-y: auto;
+        border: 1px solid #3f3f46;
+        border-radius: 8px;
+        background: #18181b;
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
       #status {
         margin-top: 12px;
         font-size: 12px;
         color: #a1a1aa;
         min-height: 2.5em;
       }
+      #status.status-error {
+        color: #fca5a5;
+      }
+      #status.status-success {
+        color: #86efac;
+      }
+      #settingsSection {
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: #a1a1aa;
+      }
+      #settingsSection summary {
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 8px;
+      }
+      #settingsSection[open] summary {
+        margin-bottom: 12px;
+      }
+      #logSection {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #a1a1aa;
+      }
+      #logSection summary {
+        cursor: pointer;
+        user-select: none;
+      }
+      #log {
+        margin: 8px 0 0;
+        padding: 8px;
+        max-height: 120px;
+        overflow-y: auto;
+        border: 1px solid #3f3f46;
+        border-radius: 8px;
+        background: #18181b;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .log-error {
+        color: #fca5a5;
+      }
+      .log-warn {
+        color: #fcd34d;
+      }
+      .log-info {
+        color: #d4d4d8;
+      }
+      .log-success {
+        color: #86efac;
+      }
     </style>
   </head>
   <body>
-    <label>
-      API URL
-      <input id="apiUrl" value="http://localhost:3001" />
-    </label>
-    <label>
-      Sync token
-      <input id="syncToken" type="password" placeholder="Bearer token" />
-    </label>
-    <button id="save">Save settings</button>
-    <button id="sync" style="margin-top: 8px">Sync captured shots</button>
+    <div class="env-toggle" role="group" aria-label="Environment">
+      <button id="envProd" type="button" class="active">Production</button>
+      <button id="envDev" type="button">Development</button>
+    </div>
+    <details id="settingsSection">
+      <summary id="settingsSummary">Settings</summary>
+      <label id="apiUrlWrapper" class="hidden">
+        API URL
+        <input id="apiUrl" value="http://localhost:3001" />
+      </label>
+      <label>
+        Sync token
+        <input
+          id="syncToken"
+          type="password"
+          placeholder="Same as SYNC_TOKEN in apps/api/.env"
+          autocomplete="off"
+        />
+      </label>
+      <button id="save">Save settings</button>
+    </details>
+    <button id="sync" style="margin-top: 8px">Sync bookmarks</button>
+    <button id="dryRun" type="button">Dry run</button>
+    <button id="stop" class="hidden">Stop</button>
     <p id="status"></p>
+    <details id="dryRunPreview" class="hidden">
+      <summary>API payload preview</summary>
+      <pre id="dryRunPayload"></pre>
+    </details>
+    <details id="logSection">
+      <summary>Activity log</summary>
+      <pre id="log"></pre>
+    </details>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

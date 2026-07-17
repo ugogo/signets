@@ -1,148 +1,124 @@
 import type { SyncShotInput } from '@signets/shared';
 
+import { countTimelineEntries, normalizeBookmarksResponse } from './bookmarks-parser.js';
+import { BOOKMARKS_RESPONSE_EVENT } from './constants.js';
 import { isExtensionMessage } from './messages.js';
 
-type BookmarksResponse = {
-  data?: {
-    bookmark_timeline_v2?: {
-      timeline?: {
-        instructions?: Array<{
-          entries?: Array<{
-            content?: {
-              itemContent?: {
-                tweet_results?: {
-                  result?: BookmarkTweet;
-                };
-              };
-            };
-          }>;
-        }>;
-      };
-    };
-  };
-};
-
-type BookmarkTweet = {
-  core?: {
-    user_results?: {
-      result?: {
-        legacy?: {
-          name?: string;
-          screen_name?: string;
-        };
-      };
-    };
-  };
-  legacy?: {
-    created_at?: string;
-    entities?: {
-      media?: Array<{
-        media_url_https?: string;
-        type?: string;
-      }>;
-    };
-    extended_entities?: {
-      media?: Array<{
-        media_url_https?: string;
-        type?: string;
-      }>;
-    };
-    full_text?: string;
-  };
-  rest_id?: string;
-};
-
 const capturedShots: SyncShotInput[] = [];
+let scrollAborted = false;
+let bookmarksResponseSeen = false;
 
-export function normalizeBookmarksResponse(
-  body: BookmarksResponse,
-): SyncShotInput[] {
-  const instructions =
-    body.data?.bookmark_timeline_v2?.timeline?.instructions ?? [];
-  const shots: SyncShotInput[] = [];
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  for (const instruction of instructions) {
-    for (const entry of instruction.entries ?? []) {
-      const tweet = entry.content?.itemContent?.tweet_results?.result;
-      if (!tweet?.rest_id || !tweet.legacy) {
-        continue;
-      }
-
-      const legacy = tweet.legacy;
-      if (!legacy) {
-        continue;
-      }
-
-      const media =
-        legacy.extended_entities?.media ?? legacy.entities?.media ?? [];
-      const photos = media.filter((item) => item.type === 'photo');
-
-      photos.forEach((photo, index) => {
-        if (!photo.media_url_https) {
-          return;
-        }
-
-        const handle =
-          tweet.core?.user_results?.result?.legacy?.screen_name ?? 'unknown';
-
-        shots.push({
-          authorHandle: handle,
-          authorName: tweet.core?.user_results?.result?.legacy?.name,
-          bookmarkedAt: new Date(legacy.created_at ?? Date.now()).toISOString(),
-          caption: legacy.full_text,
-          imageIndex: index,
-          imageUrl: `${photo.media_url_https}?name=large`,
-          xPostId: tweet.rest_id!,
-        });
-      });
+function addCapturedShots(shots: SyncShotInput[]): void {
+  for (const shot of shots) {
+    const key = `${shot.xPostId}:${shot.imageIndex}`;
+    if (
+      !capturedShots.some(
+        (existing) => `${existing.xPostId}:${existing.imageIndex}` === key,
+      )
+    ) {
+      capturedShots.push(shot);
     }
   }
 
-  return shots;
+  void chrome.runtime.sendMessage({
+    count: capturedShots.length,
+    type: 'shots-captured',
+  });
 }
 
-const originalFetch = window.fetch.bind(window);
+function processBookmarksBody(body: unknown): void {
+  bookmarksResponseSeen = true;
+  let parsed = 0;
+  let entries = 0;
 
-window.fetch = async (...args) => {
-  const response = await originalFetch(...args);
-  const input = args[0];
-  const requestUrl =
-    typeof input === 'string'
-      ? input
-      : input instanceof URL
-        ? input.toString()
-        : input.url;
-
-  if (requestUrl.includes('Bookmarks')) {
-    response
-      .clone()
-      .json()
-      .then((body: BookmarksResponse) => {
-        const shots = normalizeBookmarksResponse(body);
-        for (const shot of shots) {
-          const key = `${shot.xPostId}:${shot.imageIndex}`;
-          if (
-            !capturedShots.some(
-              (existing) =>
-                `${existing.xPostId}:${existing.imageIndex}` === key,
-            )
-          ) {
-            capturedShots.push(shot);
-          }
-        }
-        void chrome.runtime.sendMessage({
-          count: capturedShots.length,
-          type: 'shots-captured',
-        });
-      })
-      .catch(() => undefined);
+  try {
+    const typedBody = body as Parameters<typeof normalizeBookmarksResponse>[0];
+    entries = countTimelineEntries(typedBody);
+    const shots = normalizeBookmarksResponse(typedBody);
+    parsed = shots.length;
+    if (shots.length > 0) {
+      addCapturedShots(shots);
+    }
+  } catch {
+    // Ignore malformed bookmark payloads.
   }
 
-  return response;
-};
+  void chrome.runtime.sendMessage({
+    entries,
+    parsed,
+    total: capturedShots.length,
+    type: 'bookmarks-intercepted',
+  });
+}
+
+window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
+  processBookmarksBody((event as CustomEvent).detail);
+});
+
+async function autoScrollCapture(): Promise<{ count: number; stopped: boolean }> {
+  scrollAborted = false;
+  bookmarksResponseSeen = false;
+  let lastCount = 0;
+  let idleRounds = 0;
+  let waitedForInitialResponse = 0;
+
+  while (idleRounds < 3 && !scrollAborted) {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await sleep(1500);
+
+    if (scrollAborted) {
+      break;
+    }
+
+    if (!bookmarksResponseSeen && waitedForInitialResponse < 4) {
+      waitedForInitialResponse += 1;
+      continue;
+    }
+
+    if (capturedShots.length === lastCount) {
+      idleRounds += 1;
+    } else {
+      idleRounds = 0;
+      lastCount = capturedShots.length;
+    }
+  }
+
+  return { count: capturedShots.length, stopped: scrollAborted };
+}
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (isExtensionMessage(message) && message.type === 'get-captured-shots') {
-    sendResponse({ shots: capturedShots });
+  if (!isExtensionMessage(message)) {
+    return;
   }
+
+  if (message.type === 'clear-captured-shots') {
+    capturedShots.length = 0;
+    bookmarksResponseSeen = false;
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === 'get-captured-shots') {
+    sendResponse({ shots: capturedShots });
+    return;
+  }
+
+  if (message.type === 'stop-auto-scroll') {
+    scrollAborted = true;
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === 'start-auto-scroll') {
+    void autoScrollCapture().then((result) => {
+      sendResponse(result);
+    });
+    return true;
+  }
+
+  return;
 });
