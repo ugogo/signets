@@ -20,10 +20,10 @@ _Avoid_: Import, fetch, scrape, crawl, mirror
 A shot the owner has flagged as a standout, browsable as its own subset of the library.
 _Avoid_: Like, star, pin
 
-**Owner**:
-The person a library belongs to. Signets is single-user today, but every shot belongs to an owner so multi-user is a later addition rather than a rewrite.
-_Avoid_: User, account, member
+**User**:
+The person a library belongs to. Signets is single-user today, but every shot belongs to a user so multi-user is a later addition rather than a rewrite.
+_Avoid_: Owner, account, member
 
 **Library**:
-The complete set of shots belonging to one owner.
+The complete set of shots belonging to one user.
 _Avoid_: Collection, gallery, board
