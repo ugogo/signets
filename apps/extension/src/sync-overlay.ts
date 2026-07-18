@@ -12,10 +12,10 @@ export function showSyncOverlay(onStop: () => void): void {
   const label = document.createElement('span');
   label.textContent = 'Signets sync';
 
-  const count = document.createElement('span');
-  count.dataset.signetsCount = 'true';
-  count.textContent = '0 shots';
-  count.style.color = '#a1a1aa';
+  const countLabel = document.createElement('span');
+  countLabel.dataset.signetsCount = 'true';
+  countLabel.textContent = '0 shots';
+  countLabel.style.color = '#a1a1aa';
 
   const stopButton = document.createElement('button');
   stopButton.type = 'button';
@@ -24,7 +24,7 @@ export function showSyncOverlay(onStop: () => void): void {
     'background:#27272a;border:1px solid #52525b;border-radius:8px;color:#f4f4f5;cursor:pointer;font:inherit;font-weight:600;padding:6px 10px;';
   stopButton.addEventListener('click', onStop);
 
-  overlay.append(label, count, stopButton);
+  overlay.append(label, countLabel, stopButton);
   document.documentElement.append(overlay);
 }
 

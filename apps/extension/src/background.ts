@@ -9,7 +9,7 @@ import {
 } from './messages.js';
 import { loadSettings } from './settings.js';
 import { SyncRequestError, uploadSyncBatch, verifySyncCredentials } from './sync-client.js';
-import { configureSidePanel, openSidePanel } from './side-panel.js';
+import { configureSidePanel } from './side-panel.js';
 
 type CaptureResult = {
   count: number;
@@ -96,7 +96,16 @@ async function sendTabMessageWithRetry<T>(
 }
 
 async function findOrOpenBookmarksTab(): Promise<chrome.tabs.Tab> {
-  const tabs = await chrome.tabs.query({});
+  // Scope to the panel's window (the last focused normal window) so the side
+  // panel stays present alongside the bookmarks tab while it loads.
+  const focusedWindow = await chrome.windows
+    .getLastFocused({ windowTypes: ['normal'] })
+    .catch(() => undefined);
+  const windowId = focusedWindow?.id;
+
+  const tabs = await chrome.tabs.query(
+    windowId === undefined ? {} : { windowId },
+  );
   const existing = tabs.find((tab) => isBookmarksUrl(tab.url));
 
   if (existing?.id) {
@@ -109,6 +118,7 @@ async function findOrOpenBookmarksTab(): Promise<chrome.tabs.Tab> {
   const created = await chrome.tabs.create({
     active: true,
     url: BOOKMARKS_URL,
+    ...(windowId === undefined ? {} : { windowId }),
   });
 
   if (!created.id) {
@@ -346,27 +356,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'get-sync-state') {
     sendResponse({ state: syncState });
     return;
-  }
-
-  if (message.type === 'open-control-panel') {
-    const windowId = _sender.tab?.windowId;
-    if (windowId === undefined) {
-      sendResponse({ error: 'Could not determine browser window.', ok: false });
-      return;
-    }
-
-    void openSidePanel(windowId)
-      .then(() => {
-        sendResponse({ ok: true });
-      })
-      .catch((error: unknown) => {
-        const messageText =
-          error instanceof Error
-            ? error.message
-            : 'Could not open side panel.';
-        sendResponse({ error: messageText, ok: false });
-      });
-    return true;
   }
 
   if (message.type === 'bookmarks-intercepted') {

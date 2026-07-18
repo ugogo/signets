@@ -134,8 +134,14 @@ async function fetchBookmarksPage(
   return response.json();
 }
 
-function requestStopCapture(): void {
+function abortCapture(): void {
   captureAborted = true;
+  removeSyncOverlay();
+}
+
+function requestStopCapture(): void {
+  abortCapture();
+  // Notify the background so the side panel reflects the stop immediately.
   void chrome.runtime.sendMessage({ type: 'stop-sync' }).catch(() => undefined);
 }
 
@@ -213,8 +219,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'stop-auto-scroll') {
-    captureAborted = true;
-    removeSyncOverlay();
+    abortCapture();
     sendResponse({ ok: true });
     return;
   }

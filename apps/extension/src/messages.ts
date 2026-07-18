@@ -12,11 +12,29 @@ export type ExtensionMessage =
   | { type: 'get-captured-shots' }
   | { type: 'get-logs' }
   | { type: 'get-sync-state' }
-  | { type: 'open-control-panel' }
   | { type: 'start-auto-scroll' }
   | { type: 'stop-auto-scroll' }
   | { type: 'stop-sync' }
   | { type: 'sync-now' };
+
+type ExtensionMessageType = ExtensionMessage['type'];
+
+// Single source of truth for the runtime guard: the exhaustive Record forces a
+// compile error when a new ExtensionMessage variant is added but not registered.
+const EXTENSION_MESSAGE_TYPES: Record<ExtensionMessageType, true> = {
+  'bookmarks-intercepted': true,
+  'clear-captured-shots': true,
+  'clear-logs': true,
+  'dry-run': true,
+  'get-captured-shots': true,
+  'get-logs': true,
+  'get-sync-state': true,
+  'shots-captured': true,
+  'start-auto-scroll': true,
+  'stop-auto-scroll': true,
+  'stop-sync': true,
+  'sync-now': true,
+};
 
 export type BackgroundBroadcast =
   | { logs: LogEntry[]; type: 'log-updated' }
@@ -64,19 +82,8 @@ export function isExtensionMessage(value: unknown): value is ExtensionMessage {
 
   const message = value as { type?: unknown };
   return (
-    message.type === 'shots-captured' ||
-    message.type === 'bookmarks-intercepted' ||
-    message.type === 'clear-captured-shots' ||
-    message.type === 'clear-logs' ||
-    message.type === 'dry-run' ||
-    message.type === 'get-captured-shots' ||
-    message.type === 'get-logs' ||
-    message.type === 'get-sync-state' ||
-    message.type === 'open-control-panel' ||
-    message.type === 'start-auto-scroll' ||
-    message.type === 'stop-auto-scroll' ||
-    message.type === 'stop-sync' ||
-    message.type === 'sync-now'
+    typeof message.type === 'string' &&
+    Object.hasOwn(EXTENSION_MESSAGE_TYPES, message.type)
   );
 }
 
