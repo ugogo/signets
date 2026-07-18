@@ -1,11 +1,33 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query';
+import type { ListShotsResponse } from '@signets/shared';
 
-import { fetchShots, type ListShotsParams } from '../lib/api';
+import {
+  fetchShotAuthors,
+  fetchShotsPage,
+  type ListShotAuthorsParams,
+  type ListShotsParams,
+} from '../lib/api';
 
-export function useShots(params: ListShotsParams) {
+export function useInfiniteShots(params: ListShotsParams) {
+  return useInfiniteQuery({
+    getNextPageParam: (lastPage: ListShotsResponse) =>
+      lastPage.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+    placeholderData: keepPreviousData,
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
+      fetchShotsPage(params, pageParam),
+    queryKey: ['shots', params],
+  });
+}
+
+export function useShotAuthors(params: ListShotAuthorsParams) {
   return useQuery({
     placeholderData: keepPreviousData,
-    queryFn: () => fetchShots(params),
-    queryKey: ['shots', params],
+    queryFn: () => fetchShotAuthors(params),
+    queryKey: ['shots', 'authors', params],
   });
 }

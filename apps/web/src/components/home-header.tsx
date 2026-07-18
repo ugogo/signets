@@ -2,17 +2,15 @@ import { Input } from 'pickle-ui/input';
 import { Select } from 'pickle-ui/select';
 
 export interface HomeHeaderProps {
-  author: string;
   authors: string[];
-  onAuthorChange: (author: string) => void;
+  onAuthorSelect: (authorHandle: string) => void;
   onSearchChange: (search: string) => void;
   search: string;
 }
 
 export function HomeHeader({
-  author,
   authors,
-  onAuthorChange,
+  onAuthorSelect,
   onSearchChange,
   search,
 }: HomeHeaderProps) {
@@ -33,16 +31,18 @@ export function HomeHeader({
           value={search}
         />
         <Select
-          onValueChange={(value) =>
-            onAuthorChange(typeof value === 'string' ? value : '')
-          }
-          value={author || null}
+          onValueChange={(value) => {
+            const handle = typeof value === 'string' ? value : '';
+            if (handle) {
+              onAuthorSelect(handle);
+            }
+          }}
+          value={null}
         >
           <Select.Trigger className="w-full">
             <Select.Value placeholder="All authors" />
           </Select.Trigger>
           <Select.Content>
-            <Select.Item value="">All authors</Select.Item>
             {authors.map((handle) => (
               <Select.Item key={handle} value={handle}>
                 @{handle}

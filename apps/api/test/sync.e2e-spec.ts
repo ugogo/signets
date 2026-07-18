@@ -45,6 +45,37 @@ describe('Sync and shots (e2e)', () => {
       return;
     }
 
-    await request(app.getHttpServer()).get('/shots').expect(200);
+    const response = await request(app.getHttpServer()).get('/shots').expect(200);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        items: expect.any(Array),
+        nextCursor: null,
+        total: expect.any(Number),
+      }),
+    );
+  });
+
+  it('rejects an invalid shots cursor', async () => {
+    if (!app) {
+      return;
+    }
+
+    await request(app.getHttpServer())
+      .get('/shots')
+      .query({ cursor: 'not-a-cursor' })
+      .expect(400);
+  });
+
+  it('lists shot authors publicly', async () => {
+    if (!app) {
+      return;
+    }
+
+    const response = await request(app.getHttpServer())
+      .get('/shots/authors')
+      .expect(200);
+
+    expect(response.body).toEqual(expect.any(Array));
   });
 });

@@ -9,7 +9,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { listShotsQuerySchema, parseListShotsQuery } from '@signets/shared';
+import {
+  listShotAuthorsQuerySchema,
+  listShotsQuerySchema,
+  parseListShotAuthorsQuery,
+  parseListShotsQuery,
+} from '@signets/shared';
 
 import { SyncTokenGuard } from '../auth/sync-token.guard.js';
 import { ShotsService } from './shots.service.js';
@@ -23,6 +28,13 @@ export class ShotsController {
     const parsed = listShotsQuerySchema.safeParse(query);
     const filters = parsed.success ? parseListShotsQuery(parsed.data) : {};
     return this.shotsService.list(filters);
+  }
+
+  @Get('authors')
+  listAuthors(@Query() query: Record<string, string | undefined>) {
+    const parsed = listShotAuthorsQuerySchema.safeParse(query);
+    const filters = parsed.success ? parseListShotAuthorsQuery(parsed.data) : {};
+    return this.shotsService.listAuthors(filters);
   }
 
   @Delete(':id')

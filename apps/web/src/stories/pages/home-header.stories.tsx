@@ -5,22 +5,14 @@ import { HomeHeader } from '@/components/home-header';
 
 import { mockAuthors } from '../fixtures/shots';
 
-function HomeHeaderPreview({
-  initialAuthor = '',
-  initialSearch = '',
-}: {
-  initialAuthor?: string;
-  initialSearch?: string;
-}) {
+function HomeHeaderPreview({ initialSearch = '' }: { initialSearch?: string }) {
   const [search, setSearch] = useState(initialSearch);
-  const [author, setAuthor] = useState(initialAuthor);
 
   return (
     <header className="border-b border-border bg-background/90 backdrop-blur">
       <HomeHeader
-        author={author}
         authors={mockAuthors}
-        onAuthorChange={setAuthor}
+        onAuthorSelect={() => undefined}
         onSearchChange={setSearch}
         search={search}
       />
@@ -41,9 +33,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const WithFiltersApplied: Story = {
+export const WithSearchApplied: Story = {
   args: {
-    initialAuthor: 'designstudio',
     initialSearch: 'dashboard',
   },
 };
