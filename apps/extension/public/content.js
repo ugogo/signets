@@ -21,7 +21,7 @@
   }
   function extractBottomCursor(body) {
     const timelineBody = body;
-    const instructions = body.data?.bookmark_timeline_v2?.timeline?.instructions ?? body.data?.search_by_raw_query?.bookmarks_search_timeline?.timeline?.instructions ?? [];
+    const instructions = timelineBody.data?.bookmark_timeline_v2?.timeline?.instructions ?? timelineBody.data?.search_by_raw_query?.bookmarks_search_timeline?.timeline?.instructions ?? [];
     for (const instruction of instructions) {
       if (instruction.type !== "TimelineAddEntries") {
         continue;
