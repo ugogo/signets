@@ -24,6 +24,7 @@ const dryRunPreview = document.querySelector<HTMLDetailsElement>('#dryRunPreview
 const dryRunPayload = document.querySelector<HTMLPreElement>('#dryRunPayload')!;
 const settingsSection = document.querySelector<HTMLDetailsElement>('#settingsSection')!;
 const settingsSummary = document.querySelector<HTMLElement>('#settingsSummary')!;
+document.title = 'Signets Sync';
 
 let apiEnv: 'dev' | 'prod' = 'prod';
 let operationActive = false;
