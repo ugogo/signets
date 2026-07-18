@@ -266,7 +266,7 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 
     if (message.state === 'scrolling') {
-      setStatus('Scrolling bookmarks…');
+      setStatus('Fetching bookmarks…');
     }
   }
 });

@@ -1,9 +1,69 @@
-import { BOOKMARKS_RESPONSE_EVENT } from './constants.js';
+import { parseBookmarksRequestUrl } from './bookmarks-api.js';
+import {
+  BOOKMARKS_REQUEST_EVENT,
+  BOOKMARKS_RESPONSE_EVENT,
+} from './constants.js';
 
 function isBookmarksApiUrl(requestUrl: string): boolean {
   return (
     /\/Bookmarks(?:\?|$)/i.test(requestUrl) ||
     /BookmarkSearchTimeline/i.test(requestUrl)
+  );
+}
+
+function resolveRequestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
+}
+
+function collectFetchHeaders(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Record<string, string> {
+  const headers = new Headers();
+
+  if (input instanceof Request) {
+    input.headers.forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  if (init?.headers) {
+    new Headers(init.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+}
+
+function emitBookmarksRequest(
+  requestUrl: string,
+  headers: Record<string, string>,
+): void {
+  const parsed = parseBookmarksRequestUrl(requestUrl);
+  if (!parsed) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(BOOKMARKS_REQUEST_EVENT, {
+      detail: {
+        ...parsed,
+        headers,
+      },
+    }),
   );
 }
 
@@ -16,15 +76,14 @@ function emitBookmarksBody(body: unknown): void {
 function patchFetch(): void {
   const originalFetch = window.fetch.bind(window);
 
-  window.fetch = async (...args) => {
-    const response = await originalFetch(...args);
-    const input = args[0];
-    const requestUrl =
-      typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url;
+  window.fetch = async (input, init) => {
+    const requestUrl = resolveRequestUrl(input);
+
+    if (isBookmarksApiUrl(requestUrl)) {
+      emitBookmarksRequest(requestUrl, collectFetchHeaders(input, init));
+    }
+
+    const response = await originalFetch(input, init);
 
     if (isBookmarksApiUrl(requestUrl)) {
       void response
@@ -48,6 +107,7 @@ function patchXhr(): void {
   ) {
     const xhr = new OriginalXHR();
     let requestUrl = '';
+    const requestHeaders: Record<string, string> = {};
 
     const originalOpen = xhr.open.bind(xhr);
     xhr.open = function open(
@@ -61,10 +121,21 @@ function patchXhr(): void {
       return originalOpen(method, url, async ?? true, username, password);
     };
 
+    const originalSetRequestHeader = xhr.setRequestHeader.bind(xhr);
+    xhr.setRequestHeader = function setRequestHeader(
+      name: string,
+      value: string,
+    ) {
+      requestHeaders[name] = value;
+      return originalSetRequestHeader(name, value);
+    };
+
     xhr.addEventListener('load', () => {
       if (!isBookmarksApiUrl(requestUrl)) {
         return;
       }
+
+      emitBookmarksRequest(requestUrl, requestHeaders);
 
       if (xhr.responseType && xhr.responseType !== 'text') {
         return;

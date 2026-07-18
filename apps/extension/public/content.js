@@ -1,5 +1,40 @@
 "use strict";
 (() => {
+  // src/bookmarks-api.ts
+  var BOOKMARKS_PAGE_SIZE = 100;
+  function buildBookmarksRequestUrl(params, cursor) {
+    const variables = {
+      ...params.variables,
+      count: BOOKMARKS_PAGE_SIZE
+    };
+    if (cursor) {
+      variables.cursor = cursor;
+    } else {
+      delete variables.cursor;
+    }
+    const url = new URL(
+      `https://x.com/i/api/graphql/${params.queryId}/${params.operation}`
+    );
+    url.searchParams.set("variables", JSON.stringify(variables));
+    url.searchParams.set("features", JSON.stringify(params.features));
+    return url.toString();
+  }
+  function extractBottomCursor(body) {
+    const timelineBody = body;
+    const instructions = body.data?.bookmark_timeline_v2?.timeline?.instructions ?? body.data?.search_by_raw_query?.bookmarks_search_timeline?.timeline?.instructions ?? [];
+    for (const instruction of instructions) {
+      if (instruction.type !== "TimelineAddEntries") {
+        continue;
+      }
+      for (const entry of instruction.entries ?? []) {
+        if (entry.entryId?.startsWith("cursor-bottom") && typeof entry.content?.value === "string" && entry.content.value.length > 0) {
+          return entry.content.value;
+        }
+      }
+    }
+    return void 0;
+  }
+
   // src/bookmarks-parser.ts
   function isPhotoMedia(item) {
     if (!item.media_url_https) {
@@ -130,6 +165,7 @@
 
   // src/constants.ts
   var BOOKMARKS_RESPONSE_EVENT = "signets-bookmarks-response";
+  var BOOKMARKS_REQUEST_EVENT = "signets-bookmarks-request";
 
   // src/messages.ts
   function isExtensionMessage(value) {
@@ -142,8 +178,12 @@
 
   // src/content.ts
   var capturedShots = [];
-  var scrollAborted = false;
+  var PAGE_FETCH_DELAY_MS = 600;
+  var REQUEST_PARAMS_TIMEOUT_MS = 2e4;
+  var captureAborted = false;
   var bookmarksResponseSeen = false;
+  var lastBottomCursor;
+  var capturedRequestParams;
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -170,6 +210,7 @@
       entries = countTimelineEntries(typedBody);
       const shots = normalizeBookmarksResponse(typedBody);
       parsed = shots.length;
+      lastBottomCursor = extractBottomCursor(typedBody);
       if (shots.length > 0) {
         addCapturedShots(shots);
       }
@@ -185,30 +226,78 @@
   window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
     processBookmarksBody(event.detail);
   });
-  async function autoScrollCapture() {
-    scrollAborted = false;
-    bookmarksResponseSeen = false;
-    let lastCount = 0;
-    let idleRounds = 0;
-    let waitedForInitialResponse = 0;
-    while (idleRounds < 3 && !scrollAborted) {
-      window.scrollTo(0, document.documentElement.scrollHeight);
-      await sleep(1500);
-      if (scrollAborted) {
-        break;
-      }
-      if (!bookmarksResponseSeen && waitedForInitialResponse < 4) {
-        waitedForInitialResponse += 1;
-        continue;
-      }
-      if (capturedShots.length === lastCount) {
-        idleRounds += 1;
-      } else {
-        idleRounds = 0;
-        lastCount = capturedShots.length;
+  window.addEventListener(BOOKMARKS_REQUEST_EVENT, (event) => {
+    capturedRequestParams = event.detail;
+  });
+  function waitForRequestParams(timeoutMs) {
+    if (capturedRequestParams) {
+      return Promise.resolve(capturedRequestParams);
+    }
+    return new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        window.removeEventListener(
+          BOOKMARKS_REQUEST_EVENT,
+          listener
+        );
+        reject(new Error("Timed out waiting for bookmarks API request."));
+      }, timeoutMs);
+      const listener = (event) => {
+        window.clearTimeout(timeout);
+        window.removeEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+        resolve(event.detail);
+      };
+      window.addEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+    });
+  }
+  async function fetchBookmarksPage(params, cursor) {
+    const response = await fetch(buildBookmarksRequestUrl(params, cursor), {
+      credentials: "include",
+      headers: params.headers
+    });
+    if (response.status === 429) {
+      const retryAfter = Number(response.headers.get("retry-after"));
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : 15e3;
+      await sleep(waitMs);
+      return fetchBookmarksPage(params, cursor);
+    }
+    if (!response.ok) {
+      throw new Error(`Bookmarks API returned ${response.status}.`);
+    }
+    return response.json();
+  }
+  async function captureAllBookmarks() {
+    captureAborted = false;
+    let params = capturedRequestParams;
+    if (!params) {
+      try {
+        params = await waitForRequestParams(REQUEST_PARAMS_TIMEOUT_MS);
+      } catch {
+        return { count: capturedShots.length, stopped: captureAborted };
       }
     }
-    return { count: capturedShots.length, stopped: scrollAborted };
+    for (let attempt = 0; attempt < 20 && !bookmarksResponseSeen; attempt += 1) {
+      await sleep(300);
+    }
+    let cursor = lastBottomCursor;
+    let idlePages = 0;
+    while (!captureAborted && idlePages < 3 && cursor) {
+      const beforeCount = capturedShots.length;
+      const previousCursor = cursor;
+      try {
+        const body = await fetchBookmarksPage(params, cursor);
+        processBookmarksBody(body);
+      } catch {
+        break;
+      }
+      cursor = lastBottomCursor;
+      if (capturedShots.length === beforeCount || !cursor || cursor === previousCursor) {
+        idlePages += 1;
+      } else {
+        idlePages = 0;
+      }
+      await sleep(PAGE_FETCH_DELAY_MS);
+    }
+    return { count: capturedShots.length, stopped: captureAborted };
   }
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (!isExtensionMessage(message)) {
@@ -217,6 +306,8 @@
     if (message.type === "clear-captured-shots") {
       capturedShots.length = 0;
       bookmarksResponseSeen = false;
+      lastBottomCursor = void 0;
+      capturedRequestParams = void 0;
       sendResponse({ ok: true });
       return;
     }
@@ -225,12 +316,12 @@
       return;
     }
     if (message.type === "stop-auto-scroll") {
-      scrollAborted = true;
+      captureAborted = true;
       sendResponse({ ok: true });
       return;
     }
     if (message.type === "start-auto-scroll") {
-      void autoScrollCapture().then((result) => {
+      void captureAllBookmarks().then((result) => {
         sendResponse(result);
       });
       return true;
