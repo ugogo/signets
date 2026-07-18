@@ -10,3 +10,7 @@ dist
 coverage
 .wrangler
 packages/shared/dist
+apps/extension/public/background.js
+apps/extension/public/content.js
+apps/extension/public/page-interceptor.js
+apps/extension/public/popup.js
