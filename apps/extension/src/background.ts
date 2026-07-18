@@ -9,6 +9,10 @@ import {
 } from './messages.js';
 import { loadSettings } from './settings.js';
 import { SyncRequestError, uploadSyncBatch, verifySyncCredentials } from './sync-client.js';
+import {
+  clearControlWindowId,
+  ensureControlWindow,
+} from './window-manager.js';
 
 type CaptureResult = {
   count: number;
@@ -243,6 +247,7 @@ async function runSync(sendResponse: (response: unknown) => void): Promise<void>
   activeSyncTabId = undefined;
 
   try {
+    await ensureControlWindow();
     appendLog('info', 'Starting sync…');
 
     const settings = await loadSettings();
@@ -293,6 +298,7 @@ async function runDryRun(sendResponse: (response: unknown) => void): Promise<voi
   activeSyncTabId = undefined;
 
   try {
+    await ensureControlWindow();
     appendLog('info', 'Starting dry run (no upload)…');
 
     const capture = await captureBookmarks('Dry run');
@@ -347,6 +353,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return;
   }
 
+  if (message.type === 'open-control-panel') {
+    void ensureControlWindow()
+      .then(() => {
+        sendResponse({ ok: true });
+      })
+      .catch((error: unknown) => {
+        const messageText =
+          error instanceof Error
+            ? error.message
+            : 'Could not open control panel.';
+        sendResponse({ error: messageText, ok: false });
+      });
+    return true;
+  }
+
   if (message.type === 'bookmarks-intercepted') {
     appendLog(
       'info',
@@ -388,6 +409,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   return;
+});
+
+chrome.action.onClicked.addListener(() => {
+  void ensureControlWindow();
+});
+
+chrome.windows.onRemoved.addListener((windowId) => {
+  clearControlWindowId(windowId);
 });
 
 export {};

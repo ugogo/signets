@@ -12,6 +12,7 @@ export type ExtensionMessage =
   | { type: 'get-captured-shots' }
   | { type: 'get-logs' }
   | { type: 'get-sync-state' }
+  | { type: 'open-control-panel' }
   | { type: 'start-auto-scroll' }
   | { type: 'stop-auto-scroll' }
   | { type: 'stop-sync' }
@@ -71,6 +72,7 @@ export function isExtensionMessage(value: unknown): value is ExtensionMessage {
     message.type === 'get-captured-shots' ||
     message.type === 'get-logs' ||
     message.type === 'get-sync-state' ||
+    message.type === 'open-control-panel' ||
     message.type === 'start-auto-scroll' ||
     message.type === 'stop-auto-scroll' ||
     message.type === 'stop-sync' ||
