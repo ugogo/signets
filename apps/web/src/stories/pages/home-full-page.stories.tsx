@@ -1,9 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useMemo, useState } from 'react';
 
+import type { Shot } from '@signets/shared';
+
 import { HomeFilters } from '@/components/home-filters';
 import { HomeHeader } from '@/components/home-header';
+import { ShotCanvas } from '@/components/shot-canvas';
 import { ShotGallery } from '@/components/shot-gallery';
+import type { ViewMode } from '@/components/view-mode-toggle';
 
 import { mockAuthors, mockShots } from '../fixtures/shots';
 
@@ -11,6 +15,8 @@ function HomePagePreview() {
   const [search, setSearch] = useState('');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [density, setDensity] = useState(55);
+  const [viewMode, setViewMode] = useState<ViewMode>('wall');
+  const [focusedShot, setFocusedShot] = useState<null | Shot>(null);
 
   const filteredShots = useMemo(() => {
     return mockShots.filter((shot) => {
@@ -47,10 +53,23 @@ function HomePagePreview() {
           favoritesOnly={favoritesOnly}
           onDensityChange={setDensity}
           onFavoritesOnlyChange={setFavoritesOnly}
+          onViewModeChange={setViewMode}
           shotCount={filteredShots.length}
+          viewMode={viewMode}
         />
 
-        <ShotGallery density={density} shots={filteredShots} />
+        {viewMode === 'wall' ? (
+          <ShotGallery density={density} shots={filteredShots} />
+        ) : (
+          <div className="h-[70vh]">
+            <ShotCanvas
+              focusedShot={focusedShot}
+              onFocusChange={setFocusedShot}
+              shots={filteredShots}
+              total={filteredShots.length}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

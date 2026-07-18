@@ -35,3 +35,11 @@ _Avoid_: Creator, user, account
 **Author page**:
 A library view scoped to one author's shots, at `/authors/{handle}`. Still part of the library; the route fixes the author filter.
 _Avoid_: Profile, channel, collection page
+
+**Wall**:
+The default vertical masonry view of shots, ordered by bookmark date (newest first). Optimized for scanning and infinite scroll.
+_Avoid_: Feed, grid, gallery
+
+**Canvas**:
+A spatial overview of the same library slice: shots on a pannable, zoomable plane for grasping volume and layout at a glance. A second lens on the library, not a separate collection.
+_Avoid_: Map, overview, mood board

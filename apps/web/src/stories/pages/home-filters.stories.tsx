@@ -2,18 +2,22 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 
 import { HomeFilters } from '@/components/home-filters';
+import type { ViewMode } from '@/components/view-mode-toggle';
 
 function HomeFiltersPreview({
   initialDensity = 55,
   initialFavoritesOnly = false,
+  initialViewMode = 'wall',
   shotCount = 10,
 }: {
   initialDensity?: number;
   initialFavoritesOnly?: boolean;
+  initialViewMode?: ViewMode;
   shotCount?: number;
 }) {
   const [favoritesOnly, setFavoritesOnly] = useState(initialFavoritesOnly);
   const [density, setDensity] = useState(initialDensity);
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
   return (
     <HomeFilters
@@ -21,7 +25,9 @@ function HomeFiltersPreview({
       favoritesOnly={favoritesOnly}
       onDensityChange={setDensity}
       onFavoritesOnlyChange={setFavoritesOnly}
+      onViewModeChange={setViewMode}
       shotCount={shotCount}
+      viewMode={viewMode}
     />
   );
 }
@@ -41,5 +47,11 @@ export const FavoritesEnabled: Story = {
     initialDensity: 72,
     initialFavoritesOnly: true,
     shotCount: 4,
+  },
+};
+
+export const CanvasMode: Story = {
+  args: {
+    initialViewMode: 'canvas',
   },
 };
