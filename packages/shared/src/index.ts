@@ -5,8 +5,10 @@ export const syncShotInputSchema = z.object({
   authorName: z.string().optional(),
   bookmarkedAt: z.string().datetime(),
   caption: z.string().optional(),
+  height: z.number().int().positive().optional(),
   imageIndex: z.number().int().min(0).max(3),
   imageUrl: z.string().url(),
+  width: z.number().int().positive().optional(),
   xPostId: z.string().min(1),
 });
 
@@ -23,11 +25,13 @@ export const shotSchema = z.object({
   bookmarkedAt: z.string().datetime(),
   caption: z.string().nullable(),
   createdAt: z.string().datetime(),
+  height: z.number().int().positive().nullable(),
   id: z.string().uuid(),
   imageIndex: z.number().int(),
   imageUrl: z.string().url(),
   isFavorite: z.boolean(),
   updatedAt: z.string().datetime(),
+  width: z.number().int().positive().nullable(),
   xPostId: z.string(),
 });
 

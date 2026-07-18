@@ -22,6 +22,8 @@ model Shot {
   imageUrl       String
   hostedImageKey String?
   imageIndex     Int
+  width          Int?
+  height         Int?
   authorHandle   String
   authorName     String?
   caption        String?
