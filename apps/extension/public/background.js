@@ -427,7 +427,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return;
   }
   if (message.type === "shots-captured") {
-    appendLog("info", `Scrolling\u2026 ${message.count} shots captured.`);
+    appendLog("info", `Fetching\u2026 ${message.count} shots captured.`);
     return;
   }
   if (message.type === "stop-sync") {

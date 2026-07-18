@@ -6,6 +6,7 @@ export const API_URLS = {
 export const BOOKMARKS_URL = 'https://x.com/i/bookmarks';
 
 export const BOOKMARKS_RESPONSE_EVENT = 'signets-bookmarks-response';
+export const BOOKMARKS_REQUEST_EVENT = 'signets-bookmarks-request';
 
 /** Keep batches small enough for default HTTP body limits and long captions. */
 export const SYNC_BATCH_SIZE = 50;

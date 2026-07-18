@@ -243,7 +243,7 @@
         return;
       }
       if (message.state === "scrolling") {
-        setStatus("Scrolling bookmarks\u2026");
+        setStatus("Fetching bookmarks\u2026");
       }
     }
   });

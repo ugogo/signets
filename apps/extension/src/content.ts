@@ -1,12 +1,25 @@
 import type { SyncShotInput } from '@signets/shared';
 
+import {
+  buildBookmarksRequestUrl,
+  extractBottomCursor,
+  type BookmarksRequestParams,
+} from './bookmarks-api.js';
 import { countTimelineEntries, normalizeBookmarksResponse } from './bookmarks-parser.js';
-import { BOOKMARKS_RESPONSE_EVENT } from './constants.js';
+import {
+  BOOKMARKS_REQUEST_EVENT,
+  BOOKMARKS_RESPONSE_EVENT,
+} from './constants.js';
 import { isExtensionMessage } from './messages.js';
 
 const capturedShots: SyncShotInput[] = [];
-let scrollAborted = false;
+const PAGE_FETCH_DELAY_MS = 600;
+const REQUEST_PARAMS_TIMEOUT_MS = 20_000;
+
+let captureAborted = false;
 let bookmarksResponseSeen = false;
+let lastBottomCursor: string | undefined;
+let capturedRequestParams: BookmarksRequestParams | undefined;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,6 +53,7 @@ function processBookmarksBody(body: unknown): void {
     entries = countTimelineEntries(typedBody);
     const shots = normalizeBookmarksResponse(typedBody);
     parsed = shots.length;
+    lastBottomCursor = extractBottomCursor(typedBody);
     if (shots.length > 0) {
       addCapturedShots(shots);
     }
@@ -59,35 +73,106 @@ window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
   processBookmarksBody((event as CustomEvent).detail);
 });
 
-async function autoScrollCapture(): Promise<{ count: number; stopped: boolean }> {
-  scrollAborted = false;
-  bookmarksResponseSeen = false;
-  let lastCount = 0;
-  let idleRounds = 0;
-  let waitedForInitialResponse = 0;
+window.addEventListener(BOOKMARKS_REQUEST_EVENT, (event) => {
+  capturedRequestParams = (event as CustomEvent<BookmarksRequestParams>).detail;
+});
 
-  while (idleRounds < 3 && !scrollAborted) {
-    window.scrollTo(0, document.documentElement.scrollHeight);
-    await sleep(1500);
+function waitForRequestParams(timeoutMs: number): Promise<BookmarksRequestParams> {
+  if (capturedRequestParams) {
+    return Promise.resolve(capturedRequestParams);
+  }
 
-    if (scrollAborted) {
-      break;
-    }
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener(
+        BOOKMARKS_REQUEST_EVENT,
+        listener as EventListener,
+      );
+      reject(new Error('Timed out waiting for bookmarks API request.'));
+    }, timeoutMs);
 
-    if (!bookmarksResponseSeen && waitedForInitialResponse < 4) {
-      waitedForInitialResponse += 1;
-      continue;
-    }
+    const listener = (event: Event) => {
+      window.clearTimeout(timeout);
+      window.removeEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+      resolve((event as CustomEvent<BookmarksRequestParams>).detail);
+    };
 
-    if (capturedShots.length === lastCount) {
-      idleRounds += 1;
-    } else {
-      idleRounds = 0;
-      lastCount = capturedShots.length;
+    window.addEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+  });
+}
+
+async function fetchBookmarksPage(
+  params: BookmarksRequestParams,
+  cursor: string,
+): Promise<unknown> {
+  const response = await fetch(buildBookmarksRequestUrl(params, cursor), {
+    credentials: 'include',
+    headers: params.headers,
+  });
+
+  if (response.status === 429) {
+    const retryAfter = Number(response.headers.get('retry-after'));
+    const waitMs =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : 15_000;
+    await sleep(waitMs);
+    return fetchBookmarksPage(params, cursor);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Bookmarks API returned ${response.status}.`);
+  }
+
+  return response.json();
+}
+
+async function captureAllBookmarks(): Promise<{ count: number; stopped: boolean }> {
+  captureAborted = false;
+
+  let params = capturedRequestParams;
+  if (!params) {
+    try {
+      params = await waitForRequestParams(REQUEST_PARAMS_TIMEOUT_MS);
+    } catch {
+      return { count: capturedShots.length, stopped: captureAborted };
     }
   }
 
-  return { count: capturedShots.length, stopped: scrollAborted };
+  for (let attempt = 0; attempt < 20 && !bookmarksResponseSeen; attempt += 1) {
+    await sleep(300);
+  }
+
+  let cursor = lastBottomCursor;
+  let idlePages = 0;
+
+  while (!captureAborted && idlePages < 3 && cursor) {
+    const beforeCount = capturedShots.length;
+    const previousCursor = cursor;
+
+    try {
+      const body = await fetchBookmarksPage(params, cursor);
+      processBookmarksBody(body);
+    } catch {
+      break;
+    }
+
+    cursor = lastBottomCursor;
+
+    if (
+      capturedShots.length === beforeCount ||
+      !cursor ||
+      cursor === previousCursor
+    ) {
+      idlePages += 1;
+    } else {
+      idlePages = 0;
+    }
+
+    await sleep(PAGE_FETCH_DELAY_MS);
+  }
+
+  return { count: capturedShots.length, stopped: captureAborted };
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -98,6 +183,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'clear-captured-shots') {
     capturedShots.length = 0;
     bookmarksResponseSeen = false;
+    lastBottomCursor = undefined;
+    capturedRequestParams = undefined;
     sendResponse({ ok: true });
     return;
   }
@@ -108,13 +195,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'stop-auto-scroll') {
-    scrollAborted = true;
+    captureAborted = true;
     sendResponse({ ok: true });
     return;
   }
 
   if (message.type === 'start-auto-scroll') {
-    void autoScrollCapture().then((result) => {
+    void captureAllBookmarks().then((result) => {
       sendResponse(result);
     });
     return true;
