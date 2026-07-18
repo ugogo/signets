@@ -24,16 +24,7 @@ const dryRunPreview = document.querySelector<HTMLDetailsElement>('#dryRunPreview
 const dryRunPayload = document.querySelector<HTMLPreElement>('#dryRunPayload')!;
 const settingsSection = document.querySelector<HTMLDetailsElement>('#settingsSection')!;
 const settingsSummary = document.querySelector<HTMLElement>('#settingsSummary')!;
-const panelNote = document.querySelector<HTMLParagraphElement>('#panelNote')!;
-
-const isControlPanel =
-  new URLSearchParams(window.location.search).get('panel') === '1';
-
-if (isControlPanel) {
-  document.body.classList.add('control-panel');
-  panelNote.classList.remove('hidden');
-  document.title = 'Signets Sync — Control Panel';
-}
+document.title = 'Signets Sync';
 
 let apiEnv: 'dev' | 'prod' = 'prod';
 let operationActive = false;

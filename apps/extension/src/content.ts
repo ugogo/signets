@@ -11,6 +11,11 @@ import {
   BOOKMARKS_RESPONSE_EVENT,
 } from './constants.js';
 import { isExtensionMessage } from './messages.js';
+import {
+  removeSyncOverlay,
+  showSyncOverlay,
+  updateSyncOverlay,
+} from './sync-overlay.js';
 
 const capturedShots: SyncShotInput[] = [];
 const PAGE_FETCH_DELAY_MS = 600;
@@ -36,6 +41,8 @@ function addCapturedShots(shots: SyncShotInput[]): void {
       capturedShots.push(shot);
     }
   }
+
+  updateSyncOverlay(capturedShots.length);
 
   void chrome.runtime.sendMessage({
     count: capturedShots.length,
@@ -127,52 +134,63 @@ async function fetchBookmarksPage(
   return response.json();
 }
 
+function requestStopCapture(): void {
+  captureAborted = true;
+  void chrome.runtime.sendMessage({ type: 'stop-sync' }).catch(() => undefined);
+}
+
 async function captureAllBookmarks(): Promise<{ count: number; stopped: boolean }> {
   captureAborted = false;
+  showSyncOverlay(requestStopCapture);
+  updateSyncOverlay(capturedShots.length);
 
-  let params = capturedRequestParams;
-  if (!params) {
-    try {
-      params = await waitForRequestParams(REQUEST_PARAMS_TIMEOUT_MS);
-    } catch {
-      return { count: capturedShots.length, stopped: captureAborted };
-    }
-  }
-
-  for (let attempt = 0; attempt < 20 && !bookmarksResponseSeen; attempt += 1) {
-    await sleep(300);
-  }
-
-  let cursor = lastBottomCursor;
-  let idlePages = 0;
-
-  while (!captureAborted && idlePages < 3 && cursor) {
-    const beforeCount = capturedShots.length;
-    const previousCursor = cursor;
-
-    try {
-      const body = await fetchBookmarksPage(params, cursor);
-      processBookmarksBody(body);
-    } catch {
-      break;
+  try {
+    let params = capturedRequestParams;
+    if (!params) {
+      try {
+        params = await waitForRequestParams(REQUEST_PARAMS_TIMEOUT_MS);
+      } catch {
+        return { count: capturedShots.length, stopped: captureAborted };
+      }
     }
 
-    cursor = lastBottomCursor;
-
-    if (
-      capturedShots.length === beforeCount ||
-      !cursor ||
-      cursor === previousCursor
-    ) {
-      idlePages += 1;
-    } else {
-      idlePages = 0;
+    for (let attempt = 0; attempt < 20 && !bookmarksResponseSeen; attempt += 1) {
+      await sleep(300);
     }
 
-    await sleep(PAGE_FETCH_DELAY_MS);
-  }
+    let cursor = lastBottomCursor;
+    let idlePages = 0;
 
-  return { count: capturedShots.length, stopped: captureAborted };
+    while (!captureAborted && idlePages < 3 && cursor) {
+      const beforeCount = capturedShots.length;
+      const previousCursor = cursor;
+
+      try {
+        const body = await fetchBookmarksPage(params, cursor);
+        processBookmarksBody(body);
+      } catch {
+        break;
+      }
+
+      cursor = lastBottomCursor;
+
+      if (
+        capturedShots.length === beforeCount ||
+        !cursor ||
+        cursor === previousCursor
+      ) {
+        idlePages += 1;
+      } else {
+        idlePages = 0;
+      }
+
+      await sleep(PAGE_FETCH_DELAY_MS);
+    }
+
+    return { count: capturedShots.length, stopped: captureAborted };
+  } finally {
+    removeSyncOverlay();
+  }
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -196,6 +214,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === 'stop-auto-scroll') {
     captureAborted = true;
+    removeSyncOverlay();
     sendResponse({ ok: true });
     return;
   }

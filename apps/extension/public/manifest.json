@@ -3,7 +3,10 @@
   "name": "Signets Sync",
   "description": "Sync X bookmarks into Signets",
   "version": "0.1.0",
-  "permissions": ["storage", "scripting", "activeTab", "tabs", "windows"],
+  "permissions": ["storage", "scripting", "activeTab", "tabs", "sidePanel"],
+  "side_panel": {
+    "default_path": "popup.html"
+  },
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
@@ -34,6 +37,6 @@
     }
   ],
   "action": {
-    "default_title": "Open Signets Sync"
+    "default_title": "Open Signets Sync side panel"
   }
 }
