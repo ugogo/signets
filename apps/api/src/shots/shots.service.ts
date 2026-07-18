@@ -98,11 +98,13 @@ function toShotDto(row: PrismaShot): Shot {
     bookmarkedAt: row.bookmarkedAt.toISOString(),
     caption: row.caption,
     createdAt: row.createdAt.toISOString(),
+    height: row.height,
     id: row.id,
     imageIndex: row.imageIndex,
     imageUrl: row.imageUrl,
     isFavorite: row.isFavorite,
     updatedAt: row.updatedAt.toISOString(),
+    width: row.width,
     xPostId: row.xPostId,
   };
 }

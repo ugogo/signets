@@ -8,10 +8,12 @@ function createShot(overrides: Partial<Shot> & Pick<Shot, 'id' | 'authorHandle' 
     bookmarkedAt: now,
     caption: null,
     createdAt: now,
+    height: 800,
     imageIndex: 0,
     imageUrl: `https://picsum.photos/seed/${overrides.id}/640/800`,
     isFavorite: false,
     updatedAt: now,
+    width: 640,
     ...overrides,
   };
 }
@@ -30,6 +32,9 @@ export const mockShots: Shot[] = [
     id: '11111111-1111-4111-8111-111111111102',
     authorHandle: 'designstudio',
     caption: 'Card grid exploration for a productivity app.',
+    height: 640,
+    imageUrl: 'https://picsum.photos/seed/11111111-1111-4111-8111-111111111102/960/640',
+    width: 960,
     xPostId: '1000000000000000002',
   }),
   createShot({
@@ -44,6 +49,9 @@ export const mockShots: Shot[] = [
   createShot({
     id: '11111111-1111-4111-8111-111111111104',
     authorHandle: 'uxpatterns',
+    height: null,
+    imageUrl: 'https://picsum.photos/seed/11111111-1111-4111-8111-111111111104/640/512',
+    width: null,
     xPostId: '1000000000000000004',
   }),
   createShot({

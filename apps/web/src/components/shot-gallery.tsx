@@ -6,6 +6,8 @@ import { useMemo } from 'react';
 
 import { xThumbnailUrl } from '../lib/api';
 
+const FALLBACK_ASPECT_RATIO = '4 / 5';
+
 interface GalleryProps {
   density: number;
   error?: Error | null;
@@ -66,15 +68,25 @@ export function ShotGallery({
             rel="noreferrer"
             target="_blank"
           >
-            <img
-              alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-              className="block w-full bg-background object-cover"
-              loading="lazy"
-              src={xThumbnailUrl(
-                shot.imageUrl,
-                density < 35 ? 'small' : 'medium',
-              )}
-            />
+            <div
+              className="w-full bg-background"
+              style={{
+                aspectRatio:
+                  shot.width && shot.height
+                    ? `${shot.width} / ${shot.height}`
+                    : FALLBACK_ASPECT_RATIO,
+              }}
+            >
+              <img
+                alt={shot.caption ?? `@${shot.authorHandle} design shot`}
+                className="block h-full w-full object-cover"
+                decoding="async"
+                height={shot.height ?? undefined}
+                loading="lazy"
+                src={xThumbnailUrl(shot.imageUrl, 'medium')}
+                width={shot.width ?? undefined}
+              />
+            </div>
           </a>
           <Card.Content className="space-y-1 px-3 py-2 text-sm">
             <Text weight="bold">@{shot.authorHandle}</Text>

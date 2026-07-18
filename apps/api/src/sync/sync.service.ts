@@ -25,9 +25,11 @@ export class SyncService {
             authorName: shot.authorName ?? null,
             bookmarkedAt: new Date(shot.bookmarkedAt),
             caption: shot.caption ?? null,
+            height: shot.height ?? null,
             imageIndex: shot.imageIndex,
             imageUrl: shot.imageUrl,
             userId: user.id,
+            width: shot.width ?? null,
             xPostId: shot.xPostId,
           },
           update: {
@@ -35,7 +37,9 @@ export class SyncService {
             authorName: shot.authorName ?? null,
             bookmarkedAt: new Date(shot.bookmarkedAt),
             caption: shot.caption ?? null,
+            height: shot.height ?? null,
             imageUrl: shot.imageUrl,
+            width: shot.width ?? null,
           },
           where: {
             userId_xPostId_imageIndex: {

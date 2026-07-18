@@ -1,7 +1,19 @@
 import type { SyncShotInput } from '@signets/shared';
 
+type MediaSize = {
+  h?: number;
+  w?: number;
+};
+
 type BookmarkMedia = {
   media_url_https?: string;
+  original_info?: {
+    height?: number;
+    width?: number;
+  };
+  sizes?: {
+    large?: MediaSize;
+  };
   type?: string;
 };
 
@@ -201,14 +213,19 @@ function tweetToShots(tweet: BookmarkTweet): SyncShotInput[] {
       return [];
     }
 
+    const width = photo.original_info?.width ?? photo.sizes?.large?.w;
+    const height = photo.original_info?.height ?? photo.sizes?.large?.h;
+
     return [
       {
         authorHandle: author.handle,
         authorName: author.name,
         bookmarkedAt: new Date(legacy.created_at ?? Date.now()).toISOString(),
         caption,
+        height: height && height > 0 ? height : undefined,
         imageIndex: index,
         imageUrl: `${photo.media_url_https}?name=large`,
+        width: width && width > 0 ? width : undefined,
         xPostId: tweet.rest_id!,
       },
     ];

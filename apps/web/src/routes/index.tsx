@@ -5,6 +5,7 @@ import { HomeFilters } from '../components/home-filters';
 import { HomeHeader } from '../components/home-header';
 import { ShotGallery } from '../components/shot-gallery';
 import { useShots } from '../lib/queries';
+import { useDebouncedValue } from '../lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -16,13 +17,15 @@ function Home() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [density, setDensity] = useState(55);
 
+  const debouncedSearch = useDebouncedValue(search);
+
   const queryParams = useMemo(
     () => ({
       author: author.trim() || undefined,
       favorites: favoritesOnly || undefined,
-      search: search.trim() || undefined,
+      search: debouncedSearch.trim() || undefined,
     }),
-    [search, author, favoritesOnly],
+    [debouncedSearch, author, favoritesOnly],
   );
 
   const { data: shots = [], error, isLoading } = useShots(queryParams);
