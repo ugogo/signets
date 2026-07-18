@@ -1,18 +1,18 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
-import { HomeFilters } from '../components/home-filters';
-import { HomeHeader } from '../components/home-header';
-import { ShotGallery } from '../components/shot-gallery';
-import { useInfiniteShots, useShotAuthors } from '../lib/queries';
-import { useDebouncedValue } from '../lib/use-debounced-value';
+import { AuthorHeader } from '../../components/author-header';
+import { HomeFilters } from '../../components/home-filters';
+import { ShotGallery } from '../../components/shot-gallery';
+import { useInfiniteShots } from '../../lib/queries';
+import { useDebouncedValue } from '../../lib/use-debounced-value';
 
-export const Route = createFileRoute('/')({
-  component: Home,
+export const Route = createFileRoute('/authors/$handle')({
+  component: AuthorPage,
 });
 
-function Home() {
-  const navigate = useNavigate();
+function AuthorPage() {
+  const { handle } = Route.useParams();
   const [search, setSearch] = useState('');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [density, setDensity] = useState(55);
@@ -21,18 +21,11 @@ function Home() {
 
   const shotQueryParams = useMemo(
     () => ({
+      author: handle,
       favorites: favoritesOnly || undefined,
       search: debouncedSearch.trim() || undefined,
     }),
-    [debouncedSearch, favoritesOnly],
-  );
-
-  const authorQueryParams = useMemo(
-    () => ({
-      favorites: favoritesOnly || undefined,
-      search: debouncedSearch.trim() || undefined,
-    }),
-    [debouncedSearch, favoritesOnly],
+    [debouncedSearch, favoritesOnly, handle],
   );
 
   const {
@@ -43,7 +36,6 @@ function Home() {
     isFetchingNextPage,
     isLoading,
   } = useInfiniteShots(shotQueryParams);
-  const { data: authors = [] } = useShotAuthors(authorQueryParams);
 
   const shots = useMemo(
     () => data?.pages.flatMap((page) => page.items) ?? [],
@@ -54,11 +46,8 @@ function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
-        <HomeHeader
-          authors={authors}
-          onAuthorSelect={(handle) => {
-            navigate({ params: { handle }, to: '/authors/$handle' });
-          }}
+        <AuthorHeader
+          authorHandle={handle}
           onSearchChange={setSearch}
           search={search}
         />
@@ -75,6 +64,7 @@ function Home() {
 
         <ShotGallery
           density={density}
+          emptyMessage={`No shots from @${handle}.`}
           error={error}
           fetchNextPage={fetchNextPage}
           hasNextPage={hasNextPage}

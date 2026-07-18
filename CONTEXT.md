@@ -27,3 +27,11 @@ _Avoid_: Owner, account, member
 **Library**:
 The complete set of shots belonging to one user.
 _Avoid_: Collection, gallery, board
+
+**Author**:
+The X account a shot came from, identified by handle. A way to slice the library — not a Signets-owned entity.
+_Avoid_: Creator, user, account
+
+**Author page**:
+A library view scoped to one author's shots, at `/authors/{handle}`. Still part of the library; the route fixes the author filter.
+_Avoid_: Profile, channel, collection page

@@ -9,16 +9,11 @@ import { mockAuthors, mockShots } from '../fixtures/shots';
 
 function HomePagePreview() {
   const [search, setSearch] = useState('');
-  const [author, setAuthor] = useState('');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [density, setDensity] = useState(55);
 
   const filteredShots = useMemo(() => {
     return mockShots.filter((shot) => {
-      if (author && shot.authorHandle !== author) {
-        return false;
-      }
-
       if (favoritesOnly && !shot.isFavorite) {
         return false;
       }
@@ -33,15 +28,14 @@ function HomePagePreview() {
         shot.caption?.toLowerCase().includes(query)
       );
     });
-  }, [author, favoritesOnly, search]);
+  }, [favoritesOnly, search]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
         <HomeHeader
-          author={author}
           authors={mockAuthors}
-          onAuthorChange={setAuthor}
+          onAuthorSelect={() => undefined}
           onSearchChange={setSearch}
           search={search}
         />
