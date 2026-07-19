@@ -6,6 +6,8 @@ import {
 } from 'motion/react';
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
+import { UI_SPRING } from './motion';
+
 export interface Size {
   height: number;
   width: number;
@@ -136,7 +138,7 @@ export function zoomAtPoint(
 const DEFAULT_PADDING = 96;
 const DEFAULT_MAX_SCALE = 8;
 const WHEEL_ZOOM_INTENSITY = 0.0032;
-const ZOOM_SPRING = { damping: 32, stiffness: 300, type: 'spring' } as const;
+const ZOOM_SPRING = UI_SPRING;
 
 export interface UseCanvasViewportOptions {
   content: Size;

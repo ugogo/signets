@@ -1,6 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { createFileRoute } from '@tanstack/react-router';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
 
 import { AuthorHeader } from '../../components/author-header';
@@ -8,6 +9,7 @@ import { HomeFilters } from '../../components/home-filters';
 import { ShotCanvas } from '../../components/shot-canvas';
 import { ShotGallery } from '../../components/shot-gallery';
 import type { ViewMode } from '../../components/view-mode-toggle';
+import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '../../lib/motion';
 import { useInfiniteShots } from '../../lib/queries';
 import { useDebouncedValue } from '../../lib/use-debounced-value';
 import { cn } from '../../lib/utils';
@@ -51,6 +53,10 @@ function AuthorPage() {
   const shotCount = data?.pages[0]?.total ?? 0;
 
   const isCanvas = viewMode === 'canvas';
+  const reducedMotion = useReducedMotion() ?? false;
+  const viewTransition = reducedMotion ? REDUCED_MOTION_FADE : UI_SPRING;
+  const viewInitial = reducedMotion ? { opacity: 0 } : { filter: 'blur(4px)', opacity: 0, y: 12 };
+  const viewExit = reducedMotion ? { opacity: 0 } : VIEW_EXIT;
 
   return (
     <div
@@ -59,7 +65,7 @@ function AuthorPage() {
         isCanvas ? 'flex h-dvh flex-col overflow-hidden' : 'min-h-screen',
       )}
     >
-      <header className="sticky top-0 z-10 border-b border-border/80 bg-background/85 backdrop-blur-md">
+      <header className="sticky-chrome sticky top-0 z-10">
         <AuthorHeader
           authorHandle={handle}
           onSearchChange={setSearch}
@@ -84,34 +90,51 @@ function AuthorPage() {
           viewMode={viewMode}
         />
 
-        {isCanvas ? (
-          <div className="min-h-0 flex-1">
-            <ShotCanvas
-              emptyMessage={`No shots from @${handle}.`}
-              error={error}
-              fetchNextPage={fetchNextPage}
-              focusedShot={focusedShot}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              isLoading={isLoading}
-              onFocusChange={setFocusedShot}
-              resetKey={shotQueryParams}
-              shots={shots}
-              total={shotCount}
-            />
-          </div>
-        ) : (
-          <ShotGallery
-            density={density}
-            emptyMessage={`No shots from @${handle}.`}
-            error={error}
-            fetchNextPage={fetchNextPage}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            isLoading={isLoading}
-            shots={shots}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          {isCanvas ? (
+            <motion.div
+              animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+              className="min-h-0 flex-1"
+              exit={viewExit}
+              initial={viewInitial}
+              key="canvas"
+              transition={viewTransition}
+            >
+              <ShotCanvas
+                emptyMessage={`No shots from @${handle}.`}
+                error={error}
+                fetchNextPage={fetchNextPage}
+                focusedShot={focusedShot}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                isLoading={isLoading}
+                onFocusChange={setFocusedShot}
+                resetKey={shotQueryParams}
+                shots={shots}
+                total={shotCount}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+              exit={viewExit}
+              initial={viewInitial}
+              key="wall"
+              transition={viewTransition}
+            >
+              <ShotGallery
+                density={density}
+                emptyMessage={`No shots from @${handle}.`}
+                error={error}
+                fetchNextPage={fetchNextPage}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                isLoading={isLoading}
+                shots={shots}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

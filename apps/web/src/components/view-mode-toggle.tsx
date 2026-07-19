@@ -15,11 +15,12 @@ export function ViewModeToggle({
   return (
     <div
       aria-label="View mode"
-      className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/30 p-0.5"
+      className="inline-flex items-center gap-0.5 rounded-xl bg-card/60 p-0.5 shadow-[var(--shadow-border)]"
       role="group"
     >
       <Button
         aria-pressed={viewMode === 'wall'}
+        className="rounded-lg pl-3 pr-2.5"
         onClick={() => onViewModeChange('wall')}
         size="sm"
         variant={viewMode === 'wall' ? 'secondary' : 'ghost'}
@@ -29,6 +30,7 @@ export function ViewModeToggle({
       </Button>
       <Button
         aria-pressed={viewMode === 'canvas'}
+        className="rounded-lg pl-3 pr-2.5"
         onClick={() => onViewModeChange('canvas')}
         size="sm"
         variant={viewMode === 'canvas' ? 'secondary' : 'ghost'}

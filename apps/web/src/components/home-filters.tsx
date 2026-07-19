@@ -24,7 +24,7 @@ export function HomeFilters({
   viewMode,
 }: HomeFiltersProps) {
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-border/70 pb-4">
+    <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-border/60 pb-4">
       <ViewModeToggle onViewModeChange={onViewModeChange} viewMode={viewMode} />
 
       <Checkbox

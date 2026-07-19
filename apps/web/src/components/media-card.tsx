@@ -1,0 +1,40 @@
+import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react';
+
+import { cn } from '../lib/utils';
+
+const mediaCardClassName =
+  'relative overflow-hidden bg-background shadow-(--shadow-border) [&_img]:outline-none';
+
+type MediaCardProps<T extends ElementType> = {
+  as?: T;
+  children?: ReactNode;
+  className?: string;
+} & Omit<ComponentPropsWithoutRef<T>, 'as' | 'children' | 'className'>;
+
+/**
+ * Shot tile shell: one outer shadow ring. Suppresses the global img outline
+ * so corners don't ghost into a double edge.
+ */
+export function MediaCard<T extends ElementType = 'div'>({
+  as,
+  className,
+  ...props
+}: MediaCardProps<T>) {
+  const Comp = as ?? 'div';
+  return <Comp className={cn(mediaCardClassName, className)} {...props} />;
+}
+
+type SurfaceCardProps = ComponentPropsWithoutRef<'div'>;
+
+/** Elevated panel with a single shadow-border ring. */
+export function SurfaceCard({ className, ...props }: SurfaceCardProps) {
+  return (
+    <div
+      className={cn(
+        'rounded-2xl bg-card shadow-(--shadow-border) transition-shadow duration-150 ease-out hover:shadow-(--shadow-border-hover)',
+        className,
+      )}
+      {...props}
+    />
+  );
+}

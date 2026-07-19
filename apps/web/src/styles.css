@@ -1,29 +1,157 @@
 @import 'tailwindcss';
 @import 'pickle-ui/styles.css';
 
+@custom-variant hover-fine (@media (hover: hover) and (pointer: fine));
+
 @theme {
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Premium palette — warm light, deep charcoal dark (inspired by Agent/Perplexity UI). */
+:root {
+  --background: oklch(0.985 0.003 95);
+  --foreground: oklch(0.22 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.01 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.01 260);
+  --primary: oklch(0.28 0.02 260);
+  --primary-foreground: oklch(0.985 0.003 95);
+  --secondary: oklch(0.955 0.006 95);
+  --secondary-foreground: oklch(0.28 0.02 260);
+  --muted: oklch(0.955 0.006 95);
+  --muted-foreground: oklch(0.48 0.012 260);
+  --accent: oklch(0.955 0.006 95);
+  --accent-foreground: oklch(0.28 0.02 260);
+  --border: oklch(0.91 0.006 95);
+  --input: oklch(0.91 0.006 95);
+  --ring: oklch(0.55 0.14 250);
+  --radius: 0.75rem;
+  --surface-dot: oklch(0.22 0.01 260 / 0.06);
+  --surface-glow: oklch(0.55 0.14 250 / 0.05);
+  --shadow-color: oklch(0.22 0.01 260);
+  --shadow-opacity: 0.06;
+  --shadow-blur: 24px;
+  --shadow-offset-y: 8px;
+  --shadow-xs: 0 1px 2px oklch(0.22 0.01 260 / 0.04);
+  --shadow-sm:
+    0 1px 2px oklch(0.22 0.01 260 / 0.04),
+    0 4px 16px oklch(0.22 0.01 260 / 0.06);
+  --shadow-md:
+    0 2px 4px oklch(0.22 0.01 260 / 0.04),
+    0 8px 24px oklch(0.22 0.01 260 / 0.08);
+  --shadow-lg:
+    0 4px 8px oklch(0.22 0.01 260 / 0.04),
+    0 16px 40px oklch(0.22 0.01 260 / 0.1);
+  --shadow-border:
+    0 0 0 1px oklch(0 0 0 / 0.06),
+    0 1px 2px -1px oklch(0 0 0 / 0.06),
+    0 2px 4px 0 oklch(0 0 0 / 0.04);
+  --shadow-border-hover:
+    0 0 0 1px oklch(0 0 0 / 0.08),
+    0 1px 2px -1px oklch(0 0 0 / 0.08),
+    0 2px 4px 0 oklch(0 0 0 / 0.06);
+  --image-outline: oklch(0 0 0 / 0.1);
+}
+
+.dark {
+  --background: oklch(0.145 0.008 260);
+  --foreground: oklch(0.93 0.008 95);
+  --card: oklch(0.185 0.01 260);
+  --card-foreground: oklch(0.93 0.008 95);
+  --popover: oklch(0.185 0.01 260);
+  --popover-foreground: oklch(0.93 0.008 95);
+  --primary: oklch(0.93 0.008 95);
+  --primary-foreground: oklch(0.18 0.01 260);
+  --secondary: oklch(0.22 0.01 260);
+  --secondary-foreground: oklch(0.93 0.008 95);
+  --muted: oklch(0.22 0.01 260);
+  --muted-foreground: oklch(0.62 0.012 260);
+  --accent: oklch(0.24 0.012 260);
+  --accent-foreground: oklch(0.93 0.008 95);
+  --border: oklch(0.26 0.012 260);
+  --input: oklch(0.26 0.012 260);
+  --ring: oklch(0.62 0.16 250);
+  --surface-dot: oklch(0.93 0.008 95 / 0.05);
+  --surface-glow: oklch(0.62 0.16 250 / 0.08);
+  --shadow-color: oklch(0 0 0);
+  --shadow-opacity: 0.35;
+  --shadow-blur: 32px;
+  --shadow-offset-y: 12px;
+  --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.2);
+  --shadow-sm:
+    0 1px 2px oklch(0 0 0 / 0.2),
+    0 4px 16px oklch(0 0 0 / 0.25);
+  --shadow-md:
+    0 2px 4px oklch(0 0 0 / 0.2),
+    0 8px 24px oklch(0 0 0 / 0.3);
+  --shadow-lg:
+    0 4px 8px oklch(0 0 0 / 0.2),
+    0 16px 40px oklch(0 0 0 / 0.35);
+  --shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08);
+  --shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.13);
+  --image-outline: oklch(1 0 0 / 0.1);
 }
 
 @layer base {
   html {
     @apply font-sans antialiased;
+    color-scheme: light dark;
+    font-synthesis: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading leading-tight tracking-tight;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
+    text-decoration-skip-ink: auto;
+    text-underline-offset: 0.15em;
+  }
+
+  img {
+    outline: 1px solid var(--image-outline);
+    outline-offset: -1px;
   }
 
   body {
-    @apply bg-background text-foreground;
-    background-image: radial-gradient(
-      ellipse 100% 60% at 50% -10%,
-      color-mix(in oklch, var(--primary) 6%, transparent),
-      transparent 55%
-    );
+    @apply bg-background text-foreground leading-normal;
+    background-image:
+      radial-gradient(
+        ellipse 100% 50% at 50% -20%,
+        var(--surface-glow),
+        transparent 60%
+      ),
+      radial-gradient(
+        circle at center,
+        var(--surface-dot) 1px,
+        transparent 1px
+      );
+    background-size:
+      100% 100%,
+      24px 24px;
     background-attachment: fixed;
   }
 
   ::selection {
-    background: color-mix(in oklch, var(--primary) 30%, transparent);
+    background: color-mix(in oklch, var(--ring) 30%, transparent);
+    color: var(--foreground);
+  }
+
+  button,
+  [role='button'] {
+    user-select: none;
   }
 }
 
@@ -34,5 +162,68 @@
       color-mix(in oklch, var(--foreground) 3%, transparent),
       transparent 70%
     );
+  }
+
+  .press-scale {
+    transition-property: transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .press-scale:active {
+    transform: scale(0.96);
+  }
+
+  .floating-chrome {
+    background: color-mix(in oklch, var(--background) 78%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  }
+
+  .sticky-chrome {
+    background: color-mix(in oklch, var(--background) 82%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  }
+
+  .sticky-chrome::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 12px;
+    transform: translateY(100%);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--foreground) 5%, transparent),
+      transparent
+    );
+  }
+
+  .eyebrow-label {
+    @apply font-mono text-xs uppercase tracking-widest text-muted-foreground;
+  }
+
+  .touch-input {
+    @apply text-base sm:text-sm;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .floating-chrome,
+  .sticky-chrome {
+    background: var(--background);
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press-scale {
+    transition: none;
+  }
+
+  .press-scale:active {
+    transform: none;
   }
 }

@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Search } from 'lucide-react';
 import { Button } from 'pickle-ui/button';
-import { Input } from 'pickle-ui/input';
-import { InputGroup } from 'pickle-ui/input-group';
+
+import { Input, InputGroup } from './input-group';
+import { ThemeToggle } from './theme-toggle';
 
 export interface AuthorHeaderProps {
   authorHandle: string;
@@ -25,27 +26,25 @@ export function AuthorHeader({
           </Link>
         </Button>
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-            Author
-          </p>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-            @{authorHandle}
-          </h1>
+          <p className="eyebrow-label">Author</p>
+          <h1 className="text-3xl font-semibold sm:text-4xl">@{authorHandle}</h1>
         </div>
       </div>
 
-      <div className="w-full sm:max-w-sm">
-        <InputGroup>
+      <div className="flex w-full items-center gap-2 sm:max-w-sm">
+        <InputGroup className="flex-1">
           <InputGroup.Addon>
             <Search className="size-4 text-muted-foreground" />
           </InputGroup.Addon>
           <Input
             aria-label="Search within this author"
+            className="touch-input"
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search within this author"
             value={search}
           />
         </InputGroup>
+        <ThemeToggle />
       </div>
     </div>
   );

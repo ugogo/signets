@@ -1,6 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { ExternalLink, X } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import {
@@ -12,6 +13,7 @@ import {
 } from 'react';
 
 import { xThumbnailUrl } from '../lib/api';
+import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
 
 interface ShotFocusProps {
   onDismiss: () => void;
@@ -29,6 +31,7 @@ const FOCUSABLE =
 export function ShotFocus({ onDismiss, shot }: ShotFocusProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const labelId = useId();
+  const reducedMotion = useReducedMotion() ?? false;
 
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -71,25 +74,45 @@ export function ShotFocus({ onDismiss, shot }: ShotFocusProps) {
     return () => previouslyFocused?.focus?.();
   }, []);
 
+  const scrimTransition = reducedMotion ? REDUCED_MOTION_FADE : UI_SPRING;
+  const panelTransition = reducedMotion ? REDUCED_MOTION_FADE : UI_SPRING;
+  const panelInitial = reducedMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.96 };
+  const panelAnimate = reducedMotion
+    ? { opacity: 1 }
+    : { opacity: 1, scale: 1 };
+  const panelExit = reducedMotion
+    ? { opacity: 0 }
+    : { filter: 'blur(4px)', opacity: 0, scale: 0.96, y: -12 };
+
   return (
-    <div
-      className="animate-in fade-in absolute inset-0 z-20 flex items-center justify-center bg-background/75 p-6 backdrop-blur-sm"
+    <motion.div
+      animate={{ opacity: 1 }}
+      className="absolute inset-0 z-20 flex items-center justify-center bg-background/75 p-6 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60"
+      exit={{ opacity: 0, y: -12 }}
+      initial={{ opacity: 0 }}
       onClick={onDismiss}
       role="presentation"
+      transition={scrimTransition}
     >
-      <div
+      <motion.div
+        animate={panelAnimate}
         aria-labelledby={labelId}
         aria-modal="true"
-        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl"
+        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-card shadow-2xl"
+        exit={panelExit}
+        initial={panelInitial}
         onClick={(event) => event.stopPropagation()}
         onKeyDown={onKeyDown}
         ref={dialogRef}
         role="dialog"
+        transition={panelTransition}
       >
         <div className="flex min-h-0 flex-1 items-center justify-center bg-background p-2">
           <img
             alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-            className="max-h-[60vh] w-auto max-w-full object-contain"
+            className="max-h-[60vh] w-auto max-w-full rounded-xl object-contain"
             src={xThumbnailUrl(shot.imageUrl, 'large')}
           />
         </div>
@@ -125,7 +148,7 @@ export function ShotFocus({ onDismiss, shot }: ShotFocusProps) {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

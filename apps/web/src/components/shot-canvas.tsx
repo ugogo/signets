@@ -1,7 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { Maximize2, Minus, Plus } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import {
@@ -19,6 +19,7 @@ import { computeMasonryLayout, FALLBACK_ASPECT } from '../lib/canvas-grid';
 import { useElementSize } from '../lib/use-element-size';
 import { useCanvasViewport } from '../lib/use-pan-zoom';
 import { tileInRect, useVisibleRect } from '../lib/use-visible-rect';
+import { MediaCard } from './media-card';
 import { ShotFocus } from './shot-focus';
 
 const COLUMN_WIDTH = 260;
@@ -284,7 +285,7 @@ export function ShotCanvas({
   return (
     <div
       aria-label="Shot canvas. Arrow keys pan, plus and minus zoom, 0 fits."
-      className="relative h-full w-full overflow-hidden rounded-xl border border-border/80 bg-muted/10 outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="relative h-full w-full overflow-hidden rounded-xl bg-muted/10 shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-primary"
       onKeyDown={onKeyDown}
       ref={surfaceRef}
       role="application"
@@ -341,8 +342,9 @@ export function ShotCanvas({
           }
 
           return (
-            <button
-              className="animate-in fade-in absolute overflow-hidden rounded-md border border-border bg-background shadow-sm transition-shadow hover:z-10 hover:ring-2 hover:ring-primary"
+            <MediaCard
+              as="button"
+              className="press-scale animate-in fade-in absolute rounded-md transition-[box-shadow,transform] hover:z-10 hover:shadow-(--shadow-border-hover) hover:ring-2 hover:ring-primary"
               key={shot.id}
               onClick={() => {
                 if (!draggingRef.current) {
@@ -365,12 +367,12 @@ export function ShotCanvas({
                 loading="lazy"
                 src={xThumbnailUrl(shot.imageUrl, thumbnailSize)}
               />
-            </button>
+            </MediaCard>
           );
         })}
       </motion.div>
 
-      <div className="absolute right-3 top-3 flex flex-col gap-1.5 rounded-lg border border-border/70 bg-background/80 p-1 shadow-sm backdrop-blur-md">
+      <div className="floating-chrome absolute right-3 top-3 flex flex-col gap-1.5 rounded-lg p-1 shadow-[var(--shadow-border)]">
         <Button
           aria-label="Zoom in"
           disabled={!isReady}
@@ -403,18 +405,24 @@ export function ShotCanvas({
       {isFilling ? (
         <div
           aria-live="polite"
-          className="absolute bottom-3 left-3 rounded-full border border-border bg-background/80 px-3 py-1 backdrop-blur"
+          className="floating-chrome absolute bottom-3 left-3 rounded-full px-3 py-1 shadow-[var(--shadow-border)] tabular-nums"
           role="status"
         >
           <Text tone="muted" variant="small">
-            Loading {loaded} of {count}…
+            Loading {loaded.toLocaleString()} of {count.toLocaleString()}…
           </Text>
         </div>
       ) : null}
 
-      {focusedShot ? (
-        <ShotFocus onDismiss={() => onFocusChange(null)} shot={focusedShot} />
-      ) : null}
+      <AnimatePresence>
+        {focusedShot ? (
+          <ShotFocus
+            key={focusedShot.id}
+            onDismiss={() => onFocusChange(null)}
+            shot={focusedShot}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

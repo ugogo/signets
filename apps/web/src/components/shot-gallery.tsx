@@ -7,6 +7,7 @@ import { useCallback, useMemo } from 'react';
 import { xThumbnailUrl } from '../lib/api';
 import { useInfiniteScrollSentinel } from '../lib/use-infinite-scroll-sentinel';
 import { cn } from '../lib/utils';
+import { MediaCard, SurfaceCard } from './media-card';
 
 const FALLBACK_ASPECT_RATIO = '4 / 5';
 
@@ -42,23 +43,24 @@ function GallerySkeleton() {
 
 function EmptyLibrary({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/80 bg-card/30 px-8 py-16 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full border border-border bg-muted/40">
+    <SurfaceCard className="flex flex-col items-center justify-center gap-4 px-8 py-16 text-center">
+      <div className="flex size-12 items-center justify-center rounded-full bg-muted/40 shadow-(--shadow-border)">
         <BookmarkPlus className="size-5 text-muted-foreground" />
       </div>
       <div className="flex max-w-sm flex-col gap-1">
         <Text weight="bold">Nothing here yet</Text>
         <Text tone="muted">{message}</Text>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 
 function ShotCard({ shot }: { shot: Shot }) {
   return (
     <article className="group relative mb-3 break-inside-avoid">
-      <a
-        className="relative block overflow-hidden rounded-lg ring-1 ring-border/60 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-border"
+      <MediaCard
+        as="a"
+        className="press-scale block rounded-xl transition-[box-shadow,transform] duration-200 ease-out hover:shadow-(--shadow-border-hover) hover-fine:-translate-y-0.5"
         href={`https://x.com/i/web/status/${shot.xPostId}`}
         rel="noreferrer"
         target="_blank"
@@ -74,7 +76,7 @@ function ShotCard({ shot }: { shot: Shot }) {
         >
           <img
             alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-            className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            className="block h-full w-full object-cover transition-transform duration-200 ease-out hover-fine:group-hover:scale-[1.02]"
             decoding="async"
             height={shot.height ?? undefined}
             loading="lazy"
@@ -105,7 +107,7 @@ function ShotCard({ shot }: { shot: Shot }) {
             </Text>
           ) : null}
         </div>
-      </a>
+      </MediaCard>
     </article>
   );
 }
@@ -168,7 +170,7 @@ export function ShotGallery({
       </div>
       <div aria-hidden className="h-px w-full" ref={sentinelRef} />
       {isFetchingNextPage ? (
-        <Text className="mt-6 text-center font-mono text-xs" tone="muted">
+        <Text className="mt-6 text-center font-mono text-xs tabular-nums" tone="muted">
           Loading more…
         </Text>
       ) : null}

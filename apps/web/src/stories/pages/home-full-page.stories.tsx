@@ -3,8 +3,7 @@ import { useMemo, useState } from 'react';
 
 import type { Shot } from '@signets/shared';
 
-import { HomeFilters } from '@/components/home-filters';
-import { HomeHeader } from '@/components/home-header';
+import { HomeChrome } from '@/components/home-chrome';
 import { ShotCanvas } from '@/components/shot-canvas';
 import { ShotGallery } from '@/components/shot-gallery';
 import type { ViewMode } from '@/components/view-mode-toggle';
@@ -36,42 +35,39 @@ function HomePagePreview() {
     });
   }, [favoritesOnly, search]);
 
+  const isCanvas = viewMode === 'canvas';
+
+  const gallery =
+    viewMode === 'wall' ? (
+      <ShotGallery density={density} shots={filteredShots} />
+    ) : (
+      <div className="h-[70vh]">
+        <ShotCanvas
+          focusedShot={focusedShot}
+          onFocusChange={setFocusedShot}
+          shots={filteredShots}
+          total={filteredShots.length}
+        />
+      </div>
+    );
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b border-border/80 bg-background/85 backdrop-blur-md">
-        <HomeHeader
-          authors={mockAuthors}
-          onAuthorSelect={() => undefined}
-          onSearchChange={setSearch}
-          search={search}
-        />
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        <HomeFilters
-          density={density}
-          favoritesOnly={favoritesOnly}
-          onDensityChange={setDensity}
-          onFavoritesOnlyChange={setFavoritesOnly}
-          onViewModeChange={setViewMode}
-          shotCount={filteredShots.length}
-          viewMode={viewMode}
-        />
-
-        {viewMode === 'wall' ? (
-          <ShotGallery density={density} shots={filteredShots} />
-        ) : (
-          <div className="h-[70vh]">
-            <ShotCanvas
-              focusedShot={focusedShot}
-              onFocusChange={setFocusedShot}
-              shots={filteredShots}
-              total={filteredShots.length}
-            />
-          </div>
-        )}
-      </main>
-    </div>
+    <HomeChrome
+      authors={mockAuthors}
+      density={density}
+      favoritesOnly={favoritesOnly}
+      isCanvas={isCanvas}
+      onAuthorSelect={() => undefined}
+      onDensityChange={setDensity}
+      onFavoritesOnlyChange={setFavoritesOnly}
+      onSearchChange={setSearch}
+      onViewModeChange={setViewMode}
+      search={search}
+      shotCount={filteredShots.length}
+      viewMode={viewMode}
+    >
+      {gallery}
+    </HomeChrome>
   );
 }
 
