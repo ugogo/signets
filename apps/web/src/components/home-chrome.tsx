@@ -13,6 +13,10 @@ import { Button } from 'pickle-ui/button';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
+import {
+  DEFAULT_DENSITY,
+  DEFAULT_VIEW_MODE,
+} from '../lib/library-search-params';
 import { useScrollCompact } from '../lib/use-scroll-compact';
 import { cn } from '../lib/utils';
 import { Input, InputGroup } from './input-group';
@@ -25,12 +29,13 @@ export interface HomeChromeProps {
   density: number;
   favoritesOnly: boolean;
   isCanvas: boolean;
-  onAuthorSelect: (authorHandle: string) => void;
+  onAuthorToggle: (authorHandle: string) => void;
   onDensityChange: (density: number) => void;
   onFavoritesOnlyChange: (favoritesOnly: boolean) => void;
   onSearchChange: (search: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   search: string;
+  selectedAuthor: string | null;
   shotCount: number;
   viewMode: ViewMode;
 }
@@ -61,12 +66,13 @@ export function HomeChrome({
   density,
   favoritesOnly,
   isCanvas,
-  onAuthorSelect,
+  onAuthorToggle,
   onDensityChange,
   onFavoritesOnlyChange,
   onSearchChange,
   onViewModeChange,
   search,
+  selectedAuthor,
   shotCount,
   viewMode,
 }: HomeChromeProps) {
@@ -74,7 +80,10 @@ export function HomeChrome({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
   const activeFilterCount =
-    (favoritesOnly ? 1 : 0) + (viewMode === 'canvas' ? 1 : 0);
+    (favoritesOnly ? 1 : 0) +
+    (viewMode !== DEFAULT_VIEW_MODE ? 1 : 0) +
+    (selectedAuthor ? 1 : 0) +
+    (density !== DEFAULT_DENSITY ? 1 : 0);
 
   /** Tween (not spring) so height:auto exit actually runs and collapses. */
   const trayTransition = reducedMotion
@@ -308,12 +317,18 @@ export function HomeChrome({
 
                   <div className="space-y-1">
                     <p className={filterLabelClass}>Authors</p>
-                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                    <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none">
                       {authors.map((handle) => (
                         <button
-                          className="press-scale inline-flex h-7 shrink-0 items-center rounded-full bg-card px-2.5 text-xs text-muted-foreground shadow-(--shadow-border) transition-[box-shadow,color,transform] duration-150 ease-out hover:text-foreground hover:shadow-(--shadow-border-hover)"
+                          aria-pressed={selectedAuthor === handle}
+                          className={cn(
+                            'press-scale inline-flex h-7 shrink-0 appearance-none items-center rounded-full border px-2.5 text-xs transition-[border-color,color,transform] duration-150 ease-out',
+                            selectedAuthor === handle
+                              ? 'border-border bg-secondary text-foreground'
+                              : 'border-border/50 bg-card text-muted-foreground hover:border-border hover:text-foreground',
+                          )}
                           key={handle}
-                          onClick={() => onAuthorSelect(handle)}
+                          onClick={() => onAuthorToggle(handle)}
                           type="button"
                         >
                           @{handle}

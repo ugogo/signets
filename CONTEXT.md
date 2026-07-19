@@ -32,10 +32,6 @@ _Avoid_: Collection, gallery, board
 The X account a shot came from, identified by handle. A way to slice the library — not a Signets-owned entity.
 _Avoid_: Creator, user, account
 
-**Author page**:
-A library view scoped to one author's shots, at `/authors/{handle}`. Still part of the library; the route fixes the author filter.
-_Avoid_: Profile, channel, collection page
-
 **Wall**:
 The default vertical masonry view of shots, ordered by bookmark date (newest first). Optimized for scanning and infinite scroll.
 _Avoid_: Feed, grid, gallery

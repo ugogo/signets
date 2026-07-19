@@ -1,45 +1,48 @@
 import type { Shot } from '@signets/shared';
 
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useMemo, useState } from 'react';
+import { useQueryStates } from 'nuqs';
+import { useCallback, useMemo, useState } from 'react';
 
 import { HomeChrome } from '../components/home-chrome';
 import { ShotCanvas } from '../components/shot-canvas';
 import { ShotGallery } from '../components/shot-gallery';
-import type { ViewMode } from '../components/view-mode-toggle';
+import {
+  librarySearchParams,
+  librarySearchSchema,
+} from '../lib/library-search-params';
 import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '../lib/motion';
 import { useInfiniteShots, useShotAuthors } from '../lib/queries';
 import { useDebouncedValue } from '../lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
   component: Home,
+  validateSearch: librarySearchSchema,
 });
 
 function Home() {
-  const navigate = useNavigate({ from: '/' });
-  const [search, setSearch] = useState('');
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [density, setDensity] = useState(55);
-  const [viewMode, setViewMode] = useState<ViewMode>('wall');
+  const [filters, setFilters] = useQueryStates(librarySearchParams);
+  const { author, density, favorites, search, viewMode } = filters;
   const [focusedShot, setFocusedShot] = useState<null | Shot>(null);
 
-  const debouncedSearch = useDebouncedValue(search);
+  const debouncedSearch = useDebouncedValue(search ?? '');
 
   const shotQueryParams = useMemo(
     () => ({
-      favorites: favoritesOnly || undefined,
+      author: author ?? undefined,
+      favorites: favorites || undefined,
       search: debouncedSearch.trim() || undefined,
     }),
-    [debouncedSearch, favoritesOnly],
+    [author, debouncedSearch, favorites],
   );
 
   const authorQueryParams = useMemo(
     () => ({
-      favorites: favoritesOnly || undefined,
+      favorites: favorites || undefined,
       search: debouncedSearch.trim() || undefined,
     }),
-    [debouncedSearch, favoritesOnly],
+    [debouncedSearch, favorites],
   );
 
   const {
@@ -66,6 +69,13 @@ function Home() {
     : { filter: 'blur(4px)', opacity: 0, y: 12 };
   const viewExit = reducedMotion ? { opacity: 0 } : VIEW_EXIT;
 
+  const toggleAuthor = useCallback(
+    (handle: string) => {
+      void setFilters({ author: author === handle ? null : handle });
+    },
+    [author, setFilters],
+  );
+
   const gallery = (
     <AnimatePresence mode="wait">
       {isCanvas ? (
@@ -84,8 +94,10 @@ function Home() {
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
+            onAuthorToggle={toggleAuthor}
             onFocusChange={setFocusedShot}
             resetKey={shotQueryParams}
+            selectedAuthor={author}
             shots={shots}
             total={shotCount}
           />
@@ -105,6 +117,8 @@ function Home() {
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
+            onAuthorToggle={toggleAuthor}
+            selectedAuthor={author}
             shots={shots}
           />
         </motion.div>
@@ -116,16 +130,23 @@ function Home() {
     <HomeChrome
       authors={authors}
       density={density}
-      favoritesOnly={favoritesOnly}
+      favoritesOnly={favorites}
       isCanvas={isCanvas}
-      onAuthorSelect={(handle) => {
-        navigate({ params: { handle }, to: '/authors/$handle' });
+      onAuthorToggle={toggleAuthor}
+      onDensityChange={(nextDensity) => {
+        void setFilters({ density: nextDensity });
       }}
-      onDensityChange={setDensity}
-      onFavoritesOnlyChange={setFavoritesOnly}
-      onSearchChange={setSearch}
-      onViewModeChange={setViewMode}
-      search={search}
+      onFavoritesOnlyChange={(nextFavoritesOnly) => {
+        void setFilters({ favorites: nextFavoritesOnly });
+      }}
+      onSearchChange={(nextSearch) => {
+        void setFilters({ search: nextSearch || null });
+      }}
+      onViewModeChange={(nextViewMode) => {
+        void setFilters({ viewMode: nextViewMode });
+      }}
+      search={search ?? ''}
+      selectedAuthor={author}
       shotCount={shotCount}
       viewMode={viewMode}
     >

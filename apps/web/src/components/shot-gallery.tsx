@@ -19,6 +19,8 @@ interface GalleryProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
+  onAuthorToggle?: (authorHandle: string) => void;
+  selectedAuthor?: string | null;
   shots: Shot[];
 }
 
@@ -55,35 +57,46 @@ function EmptyLibrary({ message }: { message: string }) {
   );
 }
 
-function ShotCard({ shot }: { shot: Shot }) {
+function ShotCard({
+  onAuthorToggle,
+  selectedAuthor,
+  shot,
+}: {
+  onAuthorToggle?: (authorHandle: string) => void;
+  selectedAuthor?: string | null;
+  shot: Shot;
+}) {
+  const authorActive = selectedAuthor === shot.authorHandle;
+
   return (
     <article className="group relative mb-3 break-inside-avoid">
-      <MediaCard
-        as="a"
-        className="press-scale block rounded-xl transition-[box-shadow,transform] duration-200 ease-out hover:shadow-(--shadow-border-hover) hover-fine:-translate-y-0.5"
-        href={`https://x.com/i/web/status/${shot.xPostId}`}
-        rel="noreferrer"
-        target="_blank"
-      >
-        <div
-          className="w-full bg-muted/20"
-          style={{
-            aspectRatio:
-              shot.width && shot.height
-                ? `${shot.width} / ${shot.height}`
-                : FALLBACK_ASPECT_RATIO,
-          }}
+      <MediaCard className="press-scale relative block overflow-hidden rounded-xl transition-[box-shadow,transform] duration-200 ease-out hover:shadow-(--shadow-border-hover) hover-fine:-translate-y-0.5">
+        <a
+          className="block"
+          href={`https://x.com/i/web/status/${shot.xPostId}`}
+          rel="noreferrer"
+          target="_blank"
         >
-          <img
-            alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-            className="block h-full w-full object-cover transition-transform duration-200 ease-out hover-fine:group-hover:scale-[1.02]"
-            decoding="async"
-            height={shot.height ?? undefined}
-            loading="lazy"
-            src={xThumbnailUrl(shot.imageUrl, 'medium')}
-            width={shot.width ?? undefined}
-          />
-        </div>
+          <div
+            className="w-full bg-muted/20"
+            style={{
+              aspectRatio:
+                shot.width && shot.height
+                  ? `${shot.width} / ${shot.height}`
+                  : FALLBACK_ASPECT_RATIO,
+            }}
+          >
+            <img
+              alt={shot.caption ?? `@${shot.authorHandle} design shot`}
+              className="block h-full w-full object-cover transition-transform duration-200 ease-out hover-fine:group-hover:scale-[1.02]"
+              decoding="async"
+              height={shot.height ?? undefined}
+              loading="lazy"
+              src={xThumbnailUrl(shot.imageUrl, 'medium')}
+              width={shot.width ?? undefined}
+            />
+          </div>
+        </a>
 
         {shot.isFavorite ? (
           <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
@@ -98,9 +111,19 @@ function ShotCard({ shot }: { shot: Shot }) {
             'group-focus-within:opacity-100',
           )}
         >
-          <Text className="font-mono text-xs" variant="small" weight="bold">
+          <button
+            aria-pressed={authorActive}
+            className={cn(
+              'w-fit rounded-md font-mono text-xs font-bold transition-colors',
+              authorActive
+                ? 'text-primary'
+                : 'text-foreground hover:text-primary',
+            )}
+            onClick={() => onAuthorToggle?.(shot.authorHandle)}
+            type="button"
+          >
             @{shot.authorHandle}
-          </Text>
+          </button>
           {shot.caption ? (
             <Text className="line-clamp-2 text-xs" tone="muted" variant="small">
               {shot.caption}
@@ -120,6 +143,8 @@ export function ShotGallery({
   hasNextPage = false,
   isFetchingNextPage = false,
   isLoading = false,
+  onAuthorToggle,
+  selectedAuthor = null,
   shots,
 }: GalleryProps) {
   const columnWidth = useMemo(() => {
@@ -165,7 +190,12 @@ export function ShotGallery({
         }}
       >
         {shots.map((shot) => (
-          <ShotCard key={shot.id} shot={shot} />
+          <ShotCard
+            key={shot.id}
+            onAuthorToggle={onAuthorToggle}
+            selectedAuthor={selectedAuthor}
+            shot={shot}
+          />
         ))}
       </div>
       <div aria-hidden className="h-px w-full" ref={sentinelRef} />

@@ -56,9 +56,11 @@ interface ShotCanvasProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
+  onAuthorToggle?: (authorHandle: string) => void;
   onFocusChange: (shot: null | Shot) => void;
   /** Identity of the current filter set; changing it re-fits the canvas. */
   resetKey?: unknown;
+  selectedAuthor?: string | null;
   shots: Shot[];
   total: number;
 }
@@ -71,8 +73,10 @@ export function ShotCanvas({
   hasNextPage = false,
   isFetchingNextPage = false,
   isLoading = false,
+  onAuthorToggle,
   onFocusChange,
   resetKey,
+  selectedAuthor = null,
   shots,
   total,
 }: ShotCanvasProps) {
@@ -418,7 +422,9 @@ export function ShotCanvas({
         {focusedShot ? (
           <ShotFocus
             key={focusedShot.id}
+            onAuthorToggle={onAuthorToggle}
             onDismiss={() => onFocusChange(null)}
+            selectedAuthor={selectedAuthor}
             shot={focusedShot}
           />
         ) : null}

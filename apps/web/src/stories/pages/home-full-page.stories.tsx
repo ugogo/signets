@@ -12,6 +12,7 @@ import { mockAuthors, mockShots } from '../fixtures/shots';
 
 function HomePagePreview() {
   const [search, setSearch] = useState('');
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [density, setDensity] = useState(55);
   const [viewMode, setViewMode] = useState<ViewMode>('wall');
@@ -19,6 +20,10 @@ function HomePagePreview() {
 
   const filteredShots = useMemo(() => {
     return mockShots.filter((shot) => {
+      if (selectedAuthor && shot.authorHandle !== selectedAuthor) {
+        return false;
+      }
+
       if (favoritesOnly && !shot.isFavorite) {
         return false;
       }
@@ -33,18 +38,29 @@ function HomePagePreview() {
         shot.caption?.toLowerCase().includes(query)
       );
     });
-  }, [favoritesOnly, search]);
+  }, [favoritesOnly, search, selectedAuthor]);
+
+  const toggleAuthor = (handle: string) => {
+    setSelectedAuthor((current) => (current === handle ? null : handle));
+  };
 
   const isCanvas = viewMode === 'canvas';
 
   const gallery =
     viewMode === 'wall' ? (
-      <ShotGallery density={density} shots={filteredShots} />
+      <ShotGallery
+        density={density}
+        onAuthorToggle={toggleAuthor}
+        selectedAuthor={selectedAuthor}
+        shots={filteredShots}
+      />
     ) : (
       <div className="h-[70vh]">
         <ShotCanvas
           focusedShot={focusedShot}
+          onAuthorToggle={toggleAuthor}
           onFocusChange={setFocusedShot}
+          selectedAuthor={selectedAuthor}
           shots={filteredShots}
           total={filteredShots.length}
         />
@@ -57,12 +73,13 @@ function HomePagePreview() {
       density={density}
       favoritesOnly={favoritesOnly}
       isCanvas={isCanvas}
-      onAuthorSelect={() => undefined}
+      onAuthorToggle={toggleAuthor}
       onDensityChange={setDensity}
       onFavoritesOnlyChange={setFavoritesOnly}
       onSearchChange={setSearch}
       onViewModeChange={setViewMode}
       search={search}
+      selectedAuthor={selectedAuthor}
       shotCount={filteredShots.length}
       viewMode={viewMode}
     >

@@ -14,9 +14,12 @@ import {
 
 import { xThumbnailUrl } from '../lib/api';
 import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
+import { cn } from '../lib/utils';
 
 interface ShotFocusProps {
+  onAuthorToggle?: (authorHandle: string) => void;
   onDismiss: () => void;
+  selectedAuthor?: string | null;
   shot: Shot;
 }
 
@@ -28,7 +31,13 @@ const FOCUSABLE =
  * link back to X. A modal dialog — Escape or backdrop click dismisses, focus is
  * trapped inside and restored to the triggering element on close.
  */
-export function ShotFocus({ onDismiss, shot }: ShotFocusProps) {
+export function ShotFocus({
+  onAuthorToggle,
+  onDismiss,
+  selectedAuthor = null,
+  shot,
+}: ShotFocusProps) {
+  const authorActive = selectedAuthor === shot.authorHandle;
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const labelId = useId();
   const reducedMotion = useReducedMotion() ?? false;
@@ -118,9 +127,20 @@ export function ShotFocus({ onDismiss, shot }: ShotFocusProps) {
         </div>
         <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3">
           <div className="min-w-0 space-y-1">
-            <Text id={labelId} weight="bold">
+            <button
+              aria-pressed={authorActive}
+              className={cn(
+                'rounded-md font-semibold transition-colors',
+                authorActive
+                  ? 'text-primary'
+                  : 'text-foreground hover:text-primary',
+              )}
+              id={labelId}
+              onClick={() => onAuthorToggle?.(shot.authorHandle)}
+              type="button"
+            >
               @{shot.authorHandle}
-            </Text>
+            </button>
             {shot.caption ? (
               <Text className="line-clamp-2" tone="muted" variant="small">
                 {shot.caption}

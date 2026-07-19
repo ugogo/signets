@@ -6,6 +6,7 @@ import {
   Scripts,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
 
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
@@ -49,7 +50,9 @@ function RootDocument() {
       </head>
       <body>
         <AppProviders>
-          <Outlet />
+          <NuqsAdapter>
+            <Outlet />
+          </NuqsAdapter>
         </AppProviders>
         <TanStackDevtools
           config={{
