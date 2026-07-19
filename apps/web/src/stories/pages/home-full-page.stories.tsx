@@ -38,7 +38,7 @@ function HomePagePreview() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border/80 bg-background/85 backdrop-blur-md">
         <HomeHeader
           authors={mockAuthors}
           onAuthorSelect={() => undefined}

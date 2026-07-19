@@ -73,14 +73,14 @@ export function ShotFocus({ onDismiss, shot }: ShotFocusProps) {
 
   return (
     <div
-      className="animate-in fade-in absolute inset-0 z-20 flex items-center justify-center bg-background/80 p-6 backdrop-blur"
+      className="animate-in fade-in absolute inset-0 z-20 flex items-center justify-center bg-background/75 p-6 backdrop-blur-sm"
       onClick={onDismiss}
       role="presentation"
     >
       <div
         aria-labelledby={labelId}
         aria-modal="true"
-        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={onKeyDown}
         ref={dialogRef}

@@ -17,7 +17,22 @@ const config = defineConfig(({ mode }) => ({
     ...(!isStorybook ? [tanstackStart()] : []),
     viteReact(),
   ],
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: [
+      'pickle-ui/badge',
+      'pickle-ui/button',
+      'pickle-ui/checkbox',
+      'pickle-ui/input',
+      'pickle-ui/input-group',
+      'pickle-ui/select',
+      'pickle-ui/slider',
+      'pickle-ui/text',
+    ],
+  },
   test: {
     environment: 'jsdom',
     passWithNoTests: true,

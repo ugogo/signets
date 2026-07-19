@@ -59,7 +59,7 @@ function AuthorPage() {
         isCanvas ? 'flex h-dvh flex-col overflow-hidden' : 'min-h-screen',
       )}
     >
-      <header className="border-b border-border bg-background/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border/80 bg-background/85 backdrop-blur-md">
         <AuthorHeader
           authorHandle={handle}
           onSearchChange={setSearch}

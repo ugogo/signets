@@ -3,7 +3,6 @@ import type { Shot } from '@signets/shared';
 import { Maximize2, Minus, Plus } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
-import { Card } from 'pickle-ui/card';
 import { Text } from 'pickle-ui/text';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -260,14 +259,21 @@ export function ShotCanvas({
   }
 
   if (isLoading && shots.length === 0 && total === 0) {
-    return <Text tone="muted">Loading library…</Text>;
+    return (
+      <div className="flex h-full min-h-48 items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/20">
+        <Text className="font-mono text-xs" tone="muted">
+          Loading library…
+        </Text>
+      </div>
+    );
   }
 
   if (count === 0) {
     return (
-      <Card className="border-dashed p-12 text-center">
+      <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-card/20 px-6 text-center">
+        <Text weight="bold">Nothing here yet</Text>
         <Text tone="muted">{emptyMessage}</Text>
-      </Card>
+      </div>
     );
   }
 
@@ -278,7 +284,7 @@ export function ShotCanvas({
   return (
     <div
       aria-label="Shot canvas. Arrow keys pan, plus and minus zoom, 0 fits."
-      className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-card/40 outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="relative h-full w-full overflow-hidden rounded-xl border border-border/80 bg-muted/10 outline-none focus-visible:ring-2 focus-visible:ring-primary"
       onKeyDown={onKeyDown}
       ref={surfaceRef}
       role="application"
@@ -364,7 +370,7 @@ export function ShotCanvas({
         })}
       </motion.div>
 
-      <div className="absolute right-3 top-3 flex flex-col gap-2">
+      <div className="absolute right-3 top-3 flex flex-col gap-1.5 rounded-lg border border-border/70 bg-background/80 p-1 shadow-sm backdrop-blur-md">
         <Button
           aria-label="Zoom in"
           disabled={!isReady}

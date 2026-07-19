@@ -24,18 +24,21 @@ export function HomeFilters({
   viewMode,
 }: HomeFiltersProps) {
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card/60 px-4 py-3">
+    <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-border/70 pb-4">
       <ViewModeToggle onViewModeChange={onViewModeChange} viewMode={viewMode} />
+
       <Checkbox
         checked={favoritesOnly}
         label="Favorites only"
         onCheckedChange={(checked) => onFavoritesOnlyChange(checked === true)}
       />
+
       {viewMode === 'wall' ? (
-        <label className="flex min-w-48 flex-1 items-center gap-3 text-sm text-muted-foreground">
-          <span>Density</span>
+        <label className="flex min-w-52 flex-1 items-center gap-3 text-sm text-muted-foreground">
+          <span className="shrink-0">Density</span>
           <Slider
-            className="w-full"
+            aria-label="Gallery density"
+            className="w-full max-w-xs"
             max={100}
             min={0}
             onValueChange={(value) => {
@@ -48,7 +51,10 @@ export function HomeFilters({
       ) : (
         <div className="flex-1" />
       )}
-      <Badge variant="secondary">{shotCount} shots</Badge>
+
+      <Badge className="font-mono tabular-nums" variant="outline">
+        {shotCount.toLocaleString()} shots
+      </Badge>
     </div>
   );
 }

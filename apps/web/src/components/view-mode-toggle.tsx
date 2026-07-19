@@ -13,7 +13,11 @@ export function ViewModeToggle({
   viewMode,
 }: ViewModeToggleProps) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-background p-1">
+    <div
+      aria-label="View mode"
+      className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/30 p-0.5"
+      role="group"
+    >
       <Button
         aria-pressed={viewMode === 'wall'}
         onClick={() => onViewModeChange('wall')}

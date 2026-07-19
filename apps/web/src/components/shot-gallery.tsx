@@ -1,11 +1,12 @@
 import type { Shot } from '@signets/shared';
 
-import { Card } from 'pickle-ui/card';
+import { BookmarkPlus, Star } from 'lucide-react';
 import { Text } from 'pickle-ui/text';
 import { useCallback, useMemo } from 'react';
 
 import { xThumbnailUrl } from '../lib/api';
 import { useInfiniteScrollSentinel } from '../lib/use-infinite-scroll-sentinel';
+import { cn } from '../lib/utils';
 
 const FALLBACK_ASPECT_RATIO = '4 / 5';
 
@@ -18,6 +19,95 @@ interface GalleryProps {
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
   shots: Shot[];
+}
+
+function GallerySkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-3">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div
+            className="h-48 animate-pulse rounded-lg bg-muted/40"
+            key={index}
+            style={{ width: `${140 + (index % 3) * 40}px` }}
+          />
+        ))}
+      </div>
+      <Text tone="muted" variant="small">
+        Loading library…
+      </Text>
+    </div>
+  );
+}
+
+function EmptyLibrary({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/80 bg-card/30 px-8 py-16 text-center">
+      <div className="flex size-12 items-center justify-center rounded-full border border-border bg-muted/40">
+        <BookmarkPlus className="size-5 text-muted-foreground" />
+      </div>
+      <div className="flex max-w-sm flex-col gap-1">
+        <Text weight="bold">Nothing here yet</Text>
+        <Text tone="muted">{message}</Text>
+      </div>
+    </div>
+  );
+}
+
+function ShotCard({ shot }: { shot: Shot }) {
+  return (
+    <article className="group relative mb-3 break-inside-avoid">
+      <a
+        className="relative block overflow-hidden rounded-lg ring-1 ring-border/60 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-border"
+        href={`https://x.com/i/web/status/${shot.xPostId}`}
+        rel="noreferrer"
+        target="_blank"
+      >
+        <div
+          className="w-full bg-muted/20"
+          style={{
+            aspectRatio:
+              shot.width && shot.height
+                ? `${shot.width} / ${shot.height}`
+                : FALLBACK_ASPECT_RATIO,
+          }}
+        >
+          <img
+            alt={shot.caption ?? `@${shot.authorHandle} design shot`}
+            className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            decoding="async"
+            height={shot.height ?? undefined}
+            loading="lazy"
+            src={xThumbnailUrl(shot.imageUrl, 'medium')}
+            width={shot.width ?? undefined}
+          />
+        </div>
+
+        {shot.isFavorite ? (
+          <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
+            <Star className="size-3.5 fill-primary text-primary" />
+          </span>
+        ) : null}
+
+        <div
+          className={cn(
+            'absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-linear-to-t from-background/95 via-background/70 to-transparent px-3 pb-3 pt-10',
+            'opacity-0 transition-opacity duration-200 group-hover:opacity-100',
+            'group-focus-within:opacity-100',
+          )}
+        >
+          <Text className="font-mono text-xs" variant="small" weight="bold">
+            @{shot.authorHandle}
+          </Text>
+          {shot.caption ? (
+            <Text className="line-clamp-2 text-xs" tone="muted" variant="small">
+              {shot.caption}
+            </Text>
+          ) : null}
+        </div>
+      </a>
+    </article>
+  );
 }
 
 export function ShotGallery({
@@ -48,7 +138,7 @@ export function ShotGallery({
   );
 
   if (isLoading && shots.length === 0) {
-    return <Text tone="muted">Loading library…</Text>;
+    return <GallerySkeleton />;
   }
 
   if (error) {
@@ -60,11 +150,7 @@ export function ShotGallery({
   }
 
   if (shots.length === 0) {
-    return (
-      <Card className="border-dashed p-12 text-center">
-        <Text tone="muted">{emptyMessage}</Text>
-      </Card>
-    );
+    return <EmptyLibrary message={emptyMessage} />;
   }
 
   return (
@@ -77,50 +163,12 @@ export function ShotGallery({
         }}
       >
         {shots.map((shot) => (
-          <Card
-            className="mb-3 break-inside-avoid overflow-hidden shadow-sm"
-            key={shot.id}
-          >
-            <a
-              className="block"
-              href={`https://x.com/i/web/status/${shot.xPostId}`}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <div
-                className="w-full bg-background"
-                style={{
-                  aspectRatio:
-                    shot.width && shot.height
-                      ? `${shot.width} / ${shot.height}`
-                      : FALLBACK_ASPECT_RATIO,
-                }}
-              >
-                <img
-                  alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-                  className="block h-full w-full object-cover"
-                  decoding="async"
-                  height={shot.height ?? undefined}
-                  loading="lazy"
-                  src={xThumbnailUrl(shot.imageUrl, 'medium')}
-                  width={shot.width ?? undefined}
-                />
-              </div>
-            </a>
-            <Card.Content className="space-y-1 px-3 py-2 text-sm">
-              <Text weight="bold">@{shot.authorHandle}</Text>
-              {shot.caption ? (
-                <Text className="line-clamp-2" tone="muted">
-                  {shot.caption}
-                </Text>
-              ) : null}
-            </Card.Content>
-          </Card>
+          <ShotCard key={shot.id} shot={shot} />
         ))}
       </div>
       <div aria-hidden className="h-px w-full" ref={sentinelRef} />
       {isFetchingNextPage ? (
-        <Text className="mt-4 text-center" tone="muted">
+        <Text className="mt-6 text-center font-mono text-xs" tone="muted">
           Loading more…
         </Text>
       ) : null}
