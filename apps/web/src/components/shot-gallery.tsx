@@ -1,6 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { BookmarkPlus, Star } from 'lucide-react';
+import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import { useCallback, useMemo } from 'react';
 
@@ -111,19 +112,20 @@ function ShotCard({
             'group-focus-within:opacity-100',
           )}
         >
-          <button
+          <Button
             aria-pressed={authorActive}
             className={cn(
-              'w-fit rounded-md font-mono text-xs font-bold transition-colors',
+              'h-auto w-fit rounded-md p-0 font-mono text-xs font-bold',
               authorActive
                 ? 'text-primary'
                 : 'text-foreground hover:text-primary',
             )}
             onClick={() => onAuthorToggle?.(shot.authorHandle)}
-            type="button"
+            size="sm"
+            variant="ghost"
           >
             @{shot.authorHandle}
-          </button>
+          </Button>
           {shot.caption ? (
             <Text className="line-clamp-2 text-xs" tone="muted" variant="small">
               {shot.caption}

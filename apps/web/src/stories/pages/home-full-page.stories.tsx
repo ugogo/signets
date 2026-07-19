@@ -6,7 +6,7 @@ import type { Shot } from '@signets/shared';
 import { HomeChrome } from '@/components/home-chrome';
 import { ShotCanvas } from '@/components/shot-canvas';
 import { ShotGallery } from '@/components/shot-gallery';
-import type { ViewMode } from '@/components/view-mode-toggle';
+import type { ViewMode } from '@/lib/library-search-params';
 
 import { mockAuthors, mockShots } from '../fixtures/shots';
 

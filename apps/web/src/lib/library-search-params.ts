@@ -6,7 +6,7 @@ import {
   parseAsStringLiteral,
 } from 'nuqs';
 
-import type { ViewMode } from '../components/view-mode-toggle';
+export type ViewMode = 'canvas' | 'wall';
 
 export const DEFAULT_DENSITY = 55;
 export const DEFAULT_VIEW_MODE: ViewMode = 'wall';

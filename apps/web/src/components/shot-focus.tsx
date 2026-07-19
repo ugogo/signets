@@ -127,20 +127,21 @@ export function ShotFocus({
         </div>
         <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3">
           <div className="min-w-0 space-y-1">
-            <button
+            <Button
               aria-pressed={authorActive}
               className={cn(
-                'rounded-md font-semibold transition-colors',
+                'h-auto rounded-md p-0 font-semibold',
                 authorActive
                   ? 'text-primary'
                   : 'text-foreground hover:text-primary',
               )}
               id={labelId}
               onClick={() => onAuthorToggle?.(shot.authorHandle)}
-              type="button"
+              size="sm"
+              variant="ghost"
             >
               @{shot.authorHandle}
-            </button>
+            </Button>
             {shot.caption ? (
               <Text className="line-clamp-2" tone="muted" variant="small">
                 {shot.caption}

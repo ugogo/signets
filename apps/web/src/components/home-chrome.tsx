@@ -2,26 +2,27 @@ import {
   Heart,
   LayoutGrid,
   Map,
-  Minus,
-  Plus,
   Search,
   SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { Badge } from 'pickle-ui/badge';
 import { Button } from 'pickle-ui/button';
+import { Slider } from 'pickle-ui/slider';
+import { Text } from 'pickle-ui/text';
 import { type ReactNode, useEffect, useState } from 'react';
 
-import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
 import {
   DEFAULT_DENSITY,
   DEFAULT_VIEW_MODE,
+  type ViewMode,
 } from '../lib/library-search-params';
+import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
 import { useScrollCompact } from '../lib/use-scroll-compact';
 import { cn } from '../lib/utils';
 import { Input, InputGroup } from './input-group';
 import { ThemeToggle } from './theme-toggle';
-import type { ViewMode } from './view-mode-toggle';
 
 export interface HomeChromeProps {
   authors: string[];
@@ -44,8 +45,6 @@ const segmentTrackClass =
   'inline-flex h-8 shrink-0 items-center gap-0.5 rounded-xl bg-muted/50 p-0.5';
 
 const segmentButtonClass = 'press-scale h-7 rounded-lg px-2.5';
-
-const filterLabelClass = 'text-xs text-muted-foreground';
 
 const FILTER_ICON_MOTION = {
   animate: { filter: 'blur(0px)', opacity: 1, scale: 1 },
@@ -130,11 +129,18 @@ export function HomeChrome({
         >
           <div className="flex items-center gap-2">
             <div className="shrink-0 px-1.5">
-              <p className="text-sm font-semibold tracking-tight">Signets</p>
+              <Text className="tracking-tight" weight="bold">
+                Signets
+              </Text>
               {!compact ? (
-                <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                <Text
+                  as="p"
+                  className="font-mono tabular-nums"
+                  tone="muted"
+                  variant="small"
+                >
                   {shotCount.toLocaleString()}
-                </p>
+                </Text>
               ) : null}
             </div>
 
@@ -175,9 +181,13 @@ export function HomeChrome({
                 </motion.span>
               </AnimatePresence>
               {activeFilterCount > 0 && !filtersOpen ? (
-                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-foreground text-[10px] text-background">
+                <Badge
+                  aria-hidden
+                  className="absolute -top-1 -right-1 size-4 justify-center rounded-full bg-foreground p-0 text-[10px] text-background"
+                  variant="secondary"
+                >
                   {activeFilterCount}
-                </span>
+                </Badge>
               ) : null}
             </Button>
 
@@ -209,7 +219,9 @@ export function HomeChrome({
                 <div className="mt-2 space-y-2 rounded-xl bg-muted/50 p-2">
                   <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
                     <div className="space-y-1">
-                      <p className={filterLabelClass}>View</p>
+                      <Text as="p" tone="muted" variant="small">
+                        View
+                      </Text>
                       <div
                         aria-label="View mode"
                         className={segmentTrackClass}
@@ -247,7 +259,9 @@ export function HomeChrome({
                     </div>
 
                     <div className="space-y-1">
-                      <p className={filterLabelClass}>Favorites</p>
+                      <Text as="p" tone="muted" variant="small">
+                        Favorites
+                      </Text>
                       <Button
                         aria-label="Favorites only"
                         aria-pressed={favoritesOnly}
@@ -272,43 +286,40 @@ export function HomeChrome({
                       {viewMode === 'wall' ? (
                         <motion.div
                           animate={{ opacity: 1 }}
-                          className="space-y-1"
+                          className="min-w-36 space-y-1"
                           exit={{ opacity: 0 }}
                           initial={{ opacity: 0 }}
                           key="density"
                           transition={densityTransition}
                         >
-                          <p className={filterLabelClass}>Density</p>
-                          <div
-                            aria-label="Gallery density"
-                            className={segmentTrackClass}
-                            role="group"
-                          >
-                            <Button
-                              aria-label="Decrease density"
-                              className="press-scale size-7 rounded-lg"
-                              onClick={() =>
-                                onDensityChange(Math.max(0, density - 10))
-                              }
-                              size="sm"
-                              variant="ghost"
+                          <Text as="p" tone="muted" variant="small">
+                            Density
+                          </Text>
+                          <div className="flex items-center gap-2 px-0.5">
+                            <Slider
+                              aria-label="Gallery density"
+                              className="min-w-0 flex-1"
+                              max={100}
+                              min={0}
+                              onValueChange={(value) => {
+                                const next = Array.isArray(value)
+                                  ? value[0]
+                                  : value;
+                                if (typeof next === 'number') {
+                                  onDensityChange(next);
+                                }
+                              }}
+                              step={10}
+                              value={[density]}
+                            />
+                            <Text
+                              as="span"
+                              className="w-8 font-mono tabular-nums"
+                              tone="muted"
+                              variant="small"
                             >
-                              <Minus className="size-3.5" />
-                            </Button>
-                            <span className="inline-flex w-8 items-center justify-center font-mono text-xs tabular-nums text-muted-foreground">
                               {density}
-                            </span>
-                            <Button
-                              aria-label="Increase density"
-                              className="press-scale size-7 rounded-lg"
-                              onClick={() =>
-                                onDensityChange(Math.min(100, density + 10))
-                              }
-                              size="sm"
-                              variant="ghost"
-                            >
-                              <Plus className="size-3.5" />
-                            </Button>
+                            </Text>
                           </div>
                         </motion.div>
                       ) : null}
@@ -316,23 +327,27 @@ export function HomeChrome({
                   </div>
 
                   <div className="space-y-1">
-                    <p className={filterLabelClass}>Authors</p>
+                    <Text as="p" tone="muted" variant="small">
+                      Authors
+                    </Text>
                     <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none">
                       {authors.map((handle) => (
-                        <button
+                        <Button
                           aria-pressed={selectedAuthor === handle}
                           className={cn(
-                            'press-scale inline-flex h-7 shrink-0 appearance-none items-center rounded-full border px-2.5 text-xs transition-[border-color,color,transform] duration-150 ease-out',
-                            selectedAuthor === handle
-                              ? 'border-border bg-secondary text-foreground'
-                              : 'border-border/50 bg-card text-muted-foreground hover:border-border hover:text-foreground',
+                            'press-scale h-7 shrink-0 rounded-full px-2.5 text-xs',
+                            selectedAuthor === handle &&
+                              'shadow-(--shadow-border)',
                           )}
                           key={handle}
                           onClick={() => onAuthorToggle(handle)}
-                          type="button"
+                          size="sm"
+                          variant={
+                            selectedAuthor === handle ? 'secondary' : 'outline'
+                          }
                         >
                           @{handle}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
