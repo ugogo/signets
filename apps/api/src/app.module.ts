@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ShotsModule } from './shots/shots.module.js';
 import { SyncModule } from './sync/sync.module.js';
+import { XMediaModule } from './x-media/x-media.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SyncModule } from './sync/sync.module.js';
     ]),
     PrismaModule,
     HealthModule,
+    XMediaModule,
     SyncModule,
     ShotsModule,
   ],

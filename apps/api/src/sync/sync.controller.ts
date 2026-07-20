@@ -22,6 +22,12 @@ export class SyncController {
     return { ok: true };
   }
 
+  @Get('state')
+  @UseGuards(SyncTokenGuard)
+  state() {
+    return this.syncService.getState();
+  }
+
   @Post()
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @UseGuards(SyncTokenGuard)

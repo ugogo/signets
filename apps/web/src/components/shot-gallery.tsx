@@ -5,10 +5,11 @@ import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import { useCallback, useMemo } from 'react';
 
-import { xThumbnailUrl } from '../lib/api';
 import { useInfiniteScrollSentinel } from '../lib/use-infinite-scroll-sentinel';
+import { shotPosterSource } from '../lib/shot-media';
 import { cn } from '../lib/utils';
 import { MediaCard, SurfaceCard } from './media-card';
+import { MotionShotOverlay } from './motion-shot-media';
 
 const FALLBACK_ASPECT_RATIO = '4 / 5';
 
@@ -21,6 +22,7 @@ interface GalleryProps {
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
   onAuthorToggle?: (authorHandle: string) => void;
+  onFocusChange?: (shot: Shot) => void;
   selectedAuthor?: string | null;
   shots: Shot[];
 }
@@ -60,26 +62,29 @@ function EmptyLibrary({ message }: { message: string }) {
 
 function ShotCard({
   onAuthorToggle,
+  onFocusChange,
   selectedAuthor,
   shot,
 }: {
   onAuthorToggle?: (authorHandle: string) => void;
+  onFocusChange?: (shot: Shot) => void;
   selectedAuthor?: string | null;
   shot: Shot;
 }) {
   const authorActive = selectedAuthor === shot.authorHandle;
+  const mediaLabel = shot.caption ?? `@${shot.authorHandle} design shot`;
 
   return (
     <article className="group relative mb-3 break-inside-avoid">
       <MediaCard className="press-scale relative block overflow-hidden rounded-xl transition-[box-shadow,transform] duration-200 ease-out hover:shadow-(--shadow-border-hover) hover-fine:-translate-y-0.5">
-        <a
-          className="block"
-          href={`https://x.com/i/web/status/${shot.xPostId}`}
-          rel="noreferrer"
-          target="_blank"
+        <button
+          aria-label={`Open ${mediaLabel}`}
+          className="block w-full text-left"
+          onClick={() => onFocusChange?.(shot)}
+          type="button"
         >
           <div
-            className="w-full bg-muted/20"
+            className="relative w-full bg-muted/20"
             style={{
               aspectRatio:
                 shot.width && shot.height
@@ -88,16 +93,17 @@ function ShotCard({
             }}
           >
             <img
-              alt={shot.caption ?? `@${shot.authorHandle} design shot`}
+              alt={mediaLabel}
               className="block h-full w-full object-cover transition-transform duration-200 ease-out hover-fine:group-hover:scale-[1.02]"
               decoding="async"
               height={shot.height ?? undefined}
               loading="lazy"
-              src={xThumbnailUrl(shot.imageUrl, 'medium')}
+              src={shotPosterSource(shot, 'medium')}
               width={shot.width ?? undefined}
             />
+            <MotionShotOverlay shot={shot} />
           </div>
-        </a>
+        </button>
 
         {shot.isFavorite ? (
           <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
@@ -146,6 +152,7 @@ export function ShotGallery({
   isFetchingNextPage = false,
   isLoading = false,
   onAuthorToggle,
+  onFocusChange,
   selectedAuthor = null,
   shots,
 }: GalleryProps) {
@@ -195,6 +202,7 @@ export function ShotGallery({
           <ShotCard
             key={shot.id}
             onAuthorToggle={onAuthorToggle}
+            onFocusChange={onFocusChange}
             selectedAuthor={selectedAuthor}
             shot={shot}
           />

@@ -5,8 +5,10 @@ import type { Shot } from '@signets/shared';
 
 import { HomeChrome } from '@/components/home-chrome';
 import { ShotCanvas } from '@/components/shot-canvas';
+import { ShotFocus } from '@/components/shot-focus';
 import { ShotGallery } from '@/components/shot-gallery';
 import type { ViewMode } from '@/lib/library-search-params';
+import { AnimatePresence } from 'motion/react';
 
 import { mockAuthors, mockShots } from '../fixtures/shots';
 
@@ -51,6 +53,7 @@ function HomePagePreview() {
       <ShotGallery
         density={density}
         onAuthorToggle={toggleAuthor}
+        onFocusChange={setFocusedShot}
         selectedAuthor={selectedAuthor}
         shots={filteredShots}
       />
@@ -58,9 +61,7 @@ function HomePagePreview() {
       <div className="h-[70vh]">
         <ShotCanvas
           focusedShot={focusedShot}
-          onAuthorToggle={toggleAuthor}
           onFocusChange={setFocusedShot}
-          selectedAuthor={selectedAuthor}
           shots={filteredShots}
           total={filteredShots.length}
         />
@@ -84,6 +85,17 @@ function HomePagePreview() {
       viewMode={viewMode}
     >
       {gallery}
+      <AnimatePresence>
+        {focusedShot ? (
+          <ShotFocus
+            key={focusedShot.id}
+            onAuthorToggle={toggleAuthor}
+            onDismiss={() => setFocusedShot(null)}
+            selectedAuthor={selectedAuthor}
+            shot={focusedShot}
+          />
+        ) : null}
+      </AnimatePresence>
     </HomeChrome>
   );
 }

@@ -8,7 +8,7 @@ import {
   isGetCapturedShotsResponse,
 } from './messages.js';
 import { loadSettings } from './settings.js';
-import { SyncRequestError, uploadSyncBatch, verifySyncCredentials } from './sync-client.js';
+import { SyncRequestError, fetchSyncState, uploadSyncBatch, verifySyncCredentials } from './sync-client.js';
 import { configureSidePanel } from './side-panel.js';
 
 type CaptureResult = {
@@ -128,11 +128,15 @@ async function findOrOpenBookmarksTab(): Promise<chrome.tabs.Tab> {
   return created;
 }
 
-async function runAutoScroll(tabId: number): Promise<{ count: number; stopped: boolean }> {
+async function runAutoScroll(
+  tabId: number,
+  lastBookmarkSyncAt?: null | string,
+): Promise<{ count: number; stopped: boolean }> {
   activeSyncTabId = tabId;
   setSyncState('scrolling');
 
   const response = await sendTabMessageWithRetry<unknown>(tabId, {
+    lastBookmarkSyncAt,
     type: 'start-auto-scroll',
   });
 
@@ -151,7 +155,10 @@ async function getCapturedShots(tabId: number): Promise<SyncPayload['shots']> {
   return isGetCapturedShotsResponse(captured) ? captured.shots : [];
 }
 
-async function captureBookmarks(label: string): Promise<CaptureResult> {
+async function captureBookmarks(
+  label: string,
+  lastBookmarkSyncAt?: null | string,
+): Promise<CaptureResult> {
   appendLog('info', `${label}: opening bookmarks page…`);
 
   const tab = await findOrOpenBookmarksTab();
@@ -160,6 +167,14 @@ async function captureBookmarks(label: string): Promise<CaptureResult> {
   }
 
   await waitForTabLoad(tab.id);
+
+  if (lastBookmarkSyncAt) {
+    appendLog(
+      'info',
+      `Incremental sync — skipping bookmarks at or before ${lastBookmarkSyncAt}.`,
+    );
+  }
+
   appendLog('info', 'Reloading bookmarks page to capture fresh data…');
   await chrome.tabs.reload(tab.id);
   await waitForTabLoad(tab.id);
@@ -167,7 +182,7 @@ async function captureBookmarks(label: string): Promise<CaptureResult> {
 
   let scrollResult: { count: number; stopped: boolean };
   try {
-    scrollResult = await runAutoScroll(tab.id);
+    scrollResult = await runAutoScroll(tab.id, lastBookmarkSyncAt);
   } catch {
     appendLog(
       'error',
@@ -179,10 +194,12 @@ async function captureBookmarks(label: string): Promise<CaptureResult> {
   if (scrollResult.stopped || stopRequested) {
     appendLog(
       'info',
-      `Stopped by user — captured ${scrollResult.count} shots.`,
+      `Stopped by user — captured ${scrollResult.count} new shots.`,
     );
+  } else if (scrollResult.count === 0 && lastBookmarkSyncAt) {
+    appendLog('info', 'No new bookmarks since last sync.');
   } else {
-    appendLog('info', `Capture complete: ${scrollResult.count} shots.`);
+    appendLog('info', `Capture complete: ${scrollResult.count} new shots.`);
   }
 
   return { ...scrollResult, tabId: tab.id };
@@ -197,16 +214,17 @@ async function uploadShots(
   const shots = await getCapturedShots(tabId);
 
   if (shots.length === 0) {
-    throw new Error('No photo shots found in bookmarks.');
+    throw new Error('No shots found in bookmarks.');
   }
 
   const batches = chunkShots(shots, SYNC_BATCH_SIZE);
   appendLog(
     'info',
-    `Uploading ${shots.length} shots in ${batches.length} batch${batches.length === 1 ? '' : 'es'}…`,
+    `Uploading ${shots.length} new shot${shots.length === 1 ? '' : 's'} in ${batches.length} batch${batches.length === 1 ? '' : 'es'}…`,
   );
 
   let upserted = 0;
+  let lastBookmarkSyncAt = new Date(0).toISOString();
 
   for (let index = 0; index < batches.length; index += 1) {
     const batch = batches[index]!;
@@ -218,6 +236,7 @@ async function uploadShots(
     try {
       const result = await uploadSyncBatch(settings, batch);
       upserted += result.upserted;
+      lastBookmarkSyncAt = result.lastBookmarkSyncAt;
     } catch (error) {
       if (error instanceof SyncRequestError) {
         throw new SyncRequestError(
@@ -230,7 +249,7 @@ async function uploadShots(
     }
   }
 
-  return { captured: shots.length, result: { upserted } };
+  return { captured: shots.length, result: { lastBookmarkSyncAt, upserted } };
 }
 
 function chunkShots<T>(items: T[], size: number): T[][] {
@@ -265,20 +284,40 @@ async function runSync(sendResponse: (response: unknown) => void): Promise<void>
 
     appendLog('info', 'Verifying sync token…');
     await verifySyncCredentials(settings);
+    const syncState = await fetchSyncState(settings);
 
-    const capture = await captureBookmarks('Sync');
+    const capture = await captureBookmarks(
+      'Sync',
+      syncState.lastBookmarkSyncAt,
+    );
 
     if (capture.count === 0) {
-      appendLog('warn', 'No photo shots found in bookmarks.');
+      if (syncState.lastBookmarkSyncAt) {
+        appendLog('success', 'Already up to date — nothing new to sync.');
+        sendResponse({
+          captured: 0,
+          ok: true,
+          result: {
+            lastBookmarkSyncAt: syncState.lastBookmarkSyncAt,
+            upserted: 0,
+          },
+        });
+        return;
+      }
+
+      appendLog('warn', 'No shots found in bookmarks.');
       sendResponse({
-        error: 'No photo shots found. Log into X and bookmark some photos.',
+        error: 'No shots found. Log into X and bookmark some media posts.',
         ok: false,
       });
       return;
     }
 
     const { captured, result } = await uploadShots(settings, capture.tabId);
-    appendLog('success', `Synced ${result.upserted} shots (${captured} captured).`);
+    appendLog(
+      'success',
+      `Synced ${result.upserted} new shot${result.upserted === 1 ? '' : 's'}.`,
+    );
     sendResponse({ captured, ok: true, result });
   } catch (error) {
     const message =
@@ -310,9 +349,9 @@ async function runDryRun(sendResponse: (response: unknown) => void): Promise<voi
     const shots = await getCapturedShots(capture.tabId);
 
     if (shots.length === 0) {
-      appendLog('warn', 'No photo shots found in bookmarks.');
+      appendLog('warn', 'No shots found in bookmarks.');
       sendResponse({
-        error: 'No photo shots found. Log into X and bookmark some photos.',
+        error: 'No shots found. Log into X and bookmark some media posts.',
         ok: false,
       });
       return;
@@ -359,15 +398,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'bookmarks-intercepted') {
-    appendLog(
-      'info',
-      `Intercepted bookmarks API (${message.entries} entries, ${message.parsed} photos, ${message.total} total).`,
-    );
+    const detail =
+      message.newShots === undefined
+        ? `${message.entries} entries, ${message.parsed} shots, ${message.total} total`
+        : `${message.entries} entries, ${message.newShots} new / ${message.parsed} parsed, ${message.total} total`;
+    appendLog('info', `Intercepted bookmarks API (${detail}).`);
     return;
   }
 
   if (message.type === 'shots-captured') {
-    appendLog('info', `Fetching… ${message.count} shots captured.`);
+    appendLog('info', `Fetching… ${message.count} new shots captured.`);
     return;
   }
 

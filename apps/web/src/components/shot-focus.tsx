@@ -12,9 +12,13 @@ import {
   useRef,
 } from 'react';
 
-import { xThumbnailUrl } from '../lib/api';
 import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
+import {
+  shotFocusSource,
+  shotPostUrl,
+} from '../lib/shot-media';
 import { cn } from '../lib/utils';
+import { MotionShotBadge, MotionShotFocusMedia } from './motion-shot-media';
 
 interface ShotFocusProps {
   onAuthorToggle?: (authorHandle: string) => void;
@@ -27,7 +31,7 @@ const FOCUSABLE =
   'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 /**
- * In-place focus for a single canvas shot: enlarged image, metadata strip and a
+ * In-place focus for a single canvas shot: enlarged media, metadata strip and a
  * link back to X. A modal dialog — Escape or backdrop click dismisses, focus is
  * trapped inside and restored to the triggering element on close.
  */
@@ -41,6 +45,7 @@ export function ShotFocus({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const labelId = useId();
   const reducedMotion = useReducedMotion() ?? false;
+  const isMotion = shot.kind !== 'photo';
 
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -98,7 +103,7 @@ export function ShotFocus({
   return (
     <motion.div
       animate={{ opacity: 1 }}
-      className="absolute inset-0 z-20 flex items-center justify-center bg-background/75 p-6 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 p-6 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60"
       exit={{ opacity: 0, y: -12 }}
       initial={{ opacity: 0 }}
       onClick={onDismiss}
@@ -119,29 +124,36 @@ export function ShotFocus({
         transition={panelTransition}
       >
         <div className="flex min-h-0 flex-1 items-center justify-center bg-background p-2">
-          <img
-            alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-            className="max-h-[60vh] w-auto max-w-full rounded-xl object-contain"
-            src={xThumbnailUrl(shot.imageUrl, 'large')}
-          />
+          {isMotion ? (
+            <MotionShotFocusMedia shot={shot} />
+          ) : (
+            <img
+              alt={shot.caption ?? `@${shot.authorHandle} design shot`}
+              className="max-h-[60vh] w-auto max-w-full rounded-xl object-contain"
+              src={shotFocusSource(shot)}
+            />
+          )}
         </div>
         <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3">
           <div className="min-w-0 space-y-1">
-            <Button
-              aria-pressed={authorActive}
-              className={cn(
-                'h-auto rounded-md p-0 font-semibold',
-                authorActive
-                  ? 'text-primary'
-                  : 'text-foreground hover:text-primary',
-              )}
-              id={labelId}
-              onClick={() => onAuthorToggle?.(shot.authorHandle)}
-              size="sm"
-              variant="ghost"
-            >
-              @{shot.authorHandle}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                aria-pressed={authorActive}
+                className={cn(
+                  'h-auto rounded-md p-0 font-semibold',
+                  authorActive
+                    ? 'text-primary'
+                    : 'text-foreground hover:text-primary',
+                )}
+                id={labelId}
+                onClick={() => onAuthorToggle?.(shot.authorHandle)}
+                size="sm"
+                variant="ghost"
+              >
+                @{shot.authorHandle}
+              </Button>
+              <MotionShotBadge shot={shot} />
+            </div>
             {shot.caption ? (
               <Text className="line-clamp-2" tone="muted" variant="small">
                 {shot.caption}
@@ -150,11 +162,7 @@ export function ShotFocus({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button asChild size="sm" variant="secondary">
-              <a
-                href={`https://x.com/i/web/status/${shot.xPostId}`}
-                rel="noreferrer"
-                target="_blank"
-              >
+              <a href={shotPostUrl(shot)} rel="noreferrer" target="_blank">
                 <ExternalLink className="size-4" />
                 View on X
               </a>
