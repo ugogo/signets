@@ -5,7 +5,8 @@ import {
   type PipeTransform,
 } from '@nestjs/common';
 import type { ZodType } from 'zod';
-import { validationErrorEnvelope } from '@signets/shared';
+
+import { validationErrorEnvelope } from './validation-error.js';
 
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {

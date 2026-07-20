@@ -135,12 +135,6 @@ export type ListShotAuthorsResponse = z.infer<
   typeof listShotAuthorsResponseSchema
 >;
 
-export const deleteShotResponseSchema = z.object({
-  deleted: z.literal(true),
-});
-
-export type DeleteShotResponse = z.infer<typeof deleteShotResponseSchema>;
-
 export function parseListShotsQuery(
   query: z.infer<typeof listShotsQuerySchema>,
 ): ListShotsQuery {

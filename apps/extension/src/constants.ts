@@ -13,4 +13,4 @@ export const SYNC_BATCH_SIZE = 50;
 
 export type ApiEnv = keyof typeof API_URLS;
 
-export type { ExtensionActivityState as SyncState } from '@signets/shared';
+export type { SyncState } from './messages.js';

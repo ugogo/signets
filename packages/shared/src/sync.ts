@@ -46,12 +46,6 @@ export const syncResultSchema = z.object({
 
 export type SyncResult = z.infer<typeof syncResultSchema>;
 
-export const syncVerifyResponseSchema = z.object({
-  ok: z.literal(true),
-});
-
-export type SyncVerifyResponse = z.infer<typeof syncVerifyResponseSchema>;
-
 export function validateSyncShotInput(
   shot: SyncShotInput,
 ): SyncShotInput | undefined {

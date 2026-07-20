@@ -1,11 +1,12 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { SyncPayload, SyncVerifyResponse } from '@signets/shared';
+import type { SyncPayload } from '@signets/shared';
 import { syncPayloadSchema } from '@signets/shared';
 
 import { SyncTokenGuard } from '../auth/sync-token.guard.js';
 import { zodPipe } from '../common/zod-validation.pipe.js';
 import { SyncService } from './sync.service.js';
+import type { SyncVerifyResponse } from './sync.schema.js';
 
 @Controller('sync')
 export class SyncController {

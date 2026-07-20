@@ -6,12 +6,12 @@ import {
   Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { XMediaQuery } from '@signets/shared';
-import { xMediaQuerySchema } from '@signets/shared';
 import type { Request, Response } from 'express';
 
 import { zodPipe } from '../common/zod-validation.pipe.js';
 import { XMediaService } from './x-media.service.js';
+import type { XMediaQuery } from './x-media.schema.js';
+import { xMediaQuerySchema } from './x-media.schema.js';
 
 @Controller('x/media')
 export class XMediaController {

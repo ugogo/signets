@@ -2,12 +2,10 @@ import {
   listShotAuthorsResponseSchema,
   listShotsResponseSchema,
   parseJsonResponse,
+  SHOTS_PAGE_SIZE,
   type ListShotsQuery,
   type ListShotAuthorsQuery,
 } from '@signets/shared';
-
-/** Keep in sync with SHOTS_PAGE_SIZE in @signets/shared */
-const SHOTS_PAGE_SIZE = 24;
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
