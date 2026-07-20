@@ -1,7 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { Maximize2, Minus, Plus } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import {
@@ -14,13 +14,13 @@ import {
   useState,
 } from 'react';
 
-import { xThumbnailUrl } from '../lib/api';
+import { shotPosterSource } from '../lib/shot-media';
 import { computeMasonryLayout, FALLBACK_ASPECT } from '../lib/canvas-grid';
 import { useElementSize } from '../lib/use-element-size';
 import { useCanvasViewport } from '../lib/use-pan-zoom';
 import { tileInRect, useVisibleRect } from '../lib/use-visible-rect';
 import { MediaCard } from './media-card';
-import { ShotFocus } from './shot-focus';
+import { MotionShotOverlay } from './motion-shot-media';
 
 const COLUMN_WIDTH = 260;
 const GAP = 16;
@@ -56,11 +56,9 @@ interface ShotCanvasProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
-  onAuthorToggle?: (authorHandle: string) => void;
   onFocusChange: (shot: null | Shot) => void;
   /** Identity of the current filter set; changing it re-fits the canvas. */
   resetKey?: unknown;
-  selectedAuthor?: string | null;
   shots: Shot[];
   total: number;
 }
@@ -73,10 +71,8 @@ export function ShotCanvas({
   hasNextPage = false,
   isFetchingNextPage = false,
   isLoading = false,
-  onAuthorToggle,
   onFocusChange,
   resetKey,
-  selectedAuthor = null,
   shots,
   total,
 }: ShotCanvasProps) {
@@ -369,8 +365,9 @@ export function ShotCanvas({
                 decoding="async"
                 draggable={false}
                 loading="lazy"
-                src={xThumbnailUrl(shot.imageUrl, thumbnailSize)}
+                src={shotPosterSource(shot, thumbnailSize)}
               />
+              <MotionShotOverlay shot={shot} />
             </MediaCard>
           );
         })}
@@ -417,18 +414,6 @@ export function ShotCanvas({
           </Text>
         </div>
       ) : null}
-
-      <AnimatePresence>
-        {focusedShot ? (
-          <ShotFocus
-            key={focusedShot.id}
-            onAuthorToggle={onAuthorToggle}
-            onDismiss={() => onFocusChange(null)}
-            selectedAuthor={selectedAuthor}
-            shot={focusedShot}
-          />
-        ) : null}
-      </AnimatePresence>
     </div>
   );
 }

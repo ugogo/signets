@@ -5,14 +5,14 @@ import type { SyncState } from './constants.js';
 
 export type ExtensionMessage =
   | { count: number; type: 'shots-captured' }
-  | { entries: number; parsed: number; total: number; type: 'bookmarks-intercepted' }
+  | { entries: number; newShots?: number; parsed: number; total: number; type: 'bookmarks-intercepted' }
   | { type: 'clear-captured-shots' }
   | { type: 'clear-logs' }
   | { type: 'dry-run' }
   | { type: 'get-captured-shots' }
   | { type: 'get-logs' }
   | { type: 'get-sync-state' }
-  | { type: 'start-auto-scroll' }
+  | { lastBookmarkSyncAt?: null | string; type: 'start-auto-scroll' }
   | { type: 'stop-auto-scroll' }
   | { type: 'stop-sync' }
   | { type: 'sync-now' };
@@ -133,7 +133,8 @@ export function isSyncNowResponse(value: unknown): value is SyncNowResponse {
       typeof response.captured === 'number' &&
       typeof response.result === 'object' &&
       response.result !== null &&
-      'upserted' in response.result
+      'upserted' in response.result &&
+      'lastBookmarkSyncAt' in response.result
     );
   }
 

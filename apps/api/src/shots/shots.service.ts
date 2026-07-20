@@ -199,11 +199,13 @@ function toShotDto(row: PrismaShot): Shot {
     createdAt: row.createdAt.toISOString(),
     height: row.height,
     id: row.id,
-    imageIndex: row.imageIndex,
-    imageUrl: row.imageUrl,
     isFavorite: row.isFavorite,
+    kind: row.kind,
+    mediaId: row.mediaId,
+    mediaPosterUrl: row.mediaPosterUrl,
+    mediaUrl: row.mediaUrl,
+    postId: row.postId,
     updatedAt: row.updatedAt.toISOString(),
     width: row.width,
-    xPostId: row.xPostId,
   };
 }

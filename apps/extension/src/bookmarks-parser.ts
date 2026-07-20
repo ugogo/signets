@@ -1,11 +1,21 @@
-import type { SyncShotInput } from '@signets/shared';
+import type { ShotKind, SyncShotInput } from '@signets/shared';
+
+const TWITTER_EPOCH_MS = 1288834974657;
 
 type MediaSize = {
   h?: number;
   w?: number;
 };
 
+type VideoVariant = {
+  bitrate?: number;
+  content_type?: string;
+  url?: string;
+};
+
 type BookmarkMedia = {
+  id_str?: string;
+  media_key?: string;
   media_url_https?: string;
   original_info?: {
     height?: number;
@@ -15,6 +25,9 @@ type BookmarkMedia = {
     large?: MediaSize;
   };
   type?: string;
+  video_info?: {
+    variants?: VideoVariant[];
+  };
 };
 
 type BookmarkUserResult = {
@@ -68,6 +81,7 @@ type TimelineEntry = {
       };
     };
   };
+  sortIndex?: string;
 };
 
 type TimelineInstruction = {
@@ -91,16 +105,123 @@ type BookmarksResponse = {
   };
 };
 
-function isPhotoMedia(item: BookmarkMedia): boolean {
-  if (!item.media_url_https) {
-    return false;
+export function sortIndexToBookmarkedAt(sortIndex: string): string {
+  const id = BigInt(sortIndex);
+  const timestampMs = Number(id >> 22n) + TWITTER_EPOCH_MS;
+  return new Date(timestampMs).toISOString();
+}
+
+function extractMediaId(media: BookmarkMedia): string | undefined {
+  if (media.id_str) {
+    return media.id_str;
   }
 
-  if (!item.type || item.type === 'photo') {
-    return true;
+  if (media.media_key) {
+    const suffix = media.media_key.split('_').at(-1);
+    if (suffix) {
+      return suffix;
+    }
   }
 
-  return item.type !== 'video' && item.type !== 'animated_gif';
+  const url = media.media_url_https;
+  if (url) {
+    const match = url.match(/\/media\/([^/?]+)/);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return undefined;
+}
+
+function pickMp4Variant(media: BookmarkMedia): string | undefined {
+  const variants = media.video_info?.variants ?? [];
+  const mp4Variants = variants.filter(
+    (variant) => variant.content_type === 'video/mp4' && variant.url,
+  );
+
+  if (mp4Variants.length === 0) {
+    return undefined;
+  }
+
+  mp4Variants.sort((left, right) => (left.bitrate ?? 0) - (right.bitrate ?? 0));
+  const middleIndex = Math.floor((mp4Variants.length - 1) / 2);
+  return mp4Variants[middleIndex]?.url;
+}
+
+function normalizeMediaKind(type: string | undefined): ShotKind | undefined {
+  if (!type || type === 'photo') {
+    return 'photo';
+  }
+
+  if (type === 'video') {
+    return 'video';
+  }
+
+  if (type === 'animated_gif') {
+    return 'animated_gif';
+  }
+
+  return undefined;
+}
+
+function mediaToShot(
+  media: BookmarkMedia,
+  tweet: BookmarkTweet,
+  bookmarkedAt: string,
+): SyncShotInput | undefined {
+  const kind = normalizeMediaKind(media.type);
+  const mediaId = extractMediaId(media);
+  const postId = tweet.rest_id;
+
+  if (!kind || !mediaId || !postId) {
+    return undefined;
+  }
+
+  const legacy = tweet.legacy;
+  const caption =
+    tweet.note_tweet?.note_tweet_results?.result?.text ?? legacy?.full_text;
+  const author = extractAuthor(tweet.core?.user_results?.result);
+  const width = media.original_info?.width ?? media.sizes?.large?.w;
+  const height = media.original_info?.height ?? media.sizes?.large?.h;
+
+  if (kind === 'photo') {
+    if (!media.media_url_https) {
+      return undefined;
+    }
+
+    return {
+      authorHandle: author.handle,
+      authorName: author.name,
+      bookmarkedAt,
+      caption,
+      height: height && height > 0 ? height : undefined,
+      kind,
+      mediaId,
+      mediaUrl: `${media.media_url_https}?name=large`,
+      postId,
+      width: width && width > 0 ? width : undefined,
+    };
+  }
+
+  const mediaUrl = pickMp4Variant(media);
+  if (!media.media_url_https || !mediaUrl) {
+    return undefined;
+  }
+
+  return {
+    authorHandle: author.handle,
+    authorName: author.name,
+    bookmarkedAt,
+    caption,
+    height: height && height > 0 ? height : undefined,
+    kind,
+    mediaId,
+    mediaPosterUrl: `${media.media_url_https}?name=small`,
+    mediaUrl,
+    postId,
+    width: width && width > 0 ? width : undefined,
+  };
 }
 
 function extractAuthor(user: BookmarkUserResult | undefined): {
@@ -195,7 +316,18 @@ function collectTimelineEntries(body: BookmarksResponse): TimelineEntry[] {
   return entries;
 }
 
-function tweetToShots(tweet: BookmarkTweet): SyncShotInput[] {
+function resolveBookmarkedAt(entry: TimelineEntry, tweet: BookmarkTweet): string {
+  if (entry.sortIndex) {
+    return sortIndexToBookmarkedAt(entry.sortIndex);
+  }
+
+  return new Date(tweet.legacy?.created_at ?? Date.now()).toISOString();
+}
+
+function tweetToShots(
+  tweet: BookmarkTweet,
+  bookmarkedAt: string,
+): SyncShotInput[] {
   const legacy = tweet.legacy;
   if (!tweet.rest_id || !legacy) {
     return [];
@@ -203,32 +335,10 @@ function tweetToShots(tweet: BookmarkTweet): SyncShotInput[] {
 
   const media =
     legacy.extended_entities?.media ?? legacy.entities?.media ?? [];
-  const photos = media.filter(isPhotoMedia);
-  const caption =
-    tweet.note_tweet?.note_tweet_results?.result?.text ?? legacy.full_text;
-  const author = extractAuthor(tweet.core?.user_results?.result);
 
-  return photos.flatMap((photo, index) => {
-    if (!photo.media_url_https) {
-      return [];
-    }
-
-    const width = photo.original_info?.width ?? photo.sizes?.large?.w;
-    const height = photo.original_info?.height ?? photo.sizes?.large?.h;
-
-    return [
-      {
-        authorHandle: author.handle,
-        authorName: author.name,
-        bookmarkedAt: new Date(legacy.created_at ?? Date.now()).toISOString(),
-        caption,
-        height: height && height > 0 ? height : undefined,
-        imageIndex: index,
-        imageUrl: `${photo.media_url_https}?name=large`,
-        width: width && width > 0 ? width : undefined,
-        xPostId: tweet.rest_id!,
-      },
-    ];
+  return media.flatMap((item) => {
+    const shot = mediaToShot(item, tweet, bookmarkedAt);
+    return shot ? [shot] : [];
   });
 }
 
@@ -250,7 +360,7 @@ function shotsFromEntries(entries: TimelineEntry[]): SyncShotInput[] {
       continue;
     }
 
-    shots.push(...tweetToShots(tweet));
+    shots.push(...tweetToShots(tweet, resolveBookmarkedAt(entry, tweet)));
   }
 
   return shots;
@@ -282,4 +392,31 @@ export function countTimelineEntries(body: BookmarksResponse): number {
   }
 
   return collectTimelineEntries(body).length;
+}
+
+export function filterShotsNewerThanWatermark(
+  shots: SyncShotInput[],
+  watermarkIso: string | null | undefined,
+): SyncShotInput[] {
+  if (!watermarkIso) {
+    return shots;
+  }
+
+  const watermarkMs = Date.parse(watermarkIso);
+  if (Number.isNaN(watermarkMs)) {
+    return shots;
+  }
+
+  return shots.filter((shot) => Date.parse(shot.bookmarkedAt) > watermarkMs);
+}
+
+export function isOlderThanWatermark(
+  shots: SyncShotInput[],
+  watermarkIso: string,
+): boolean {
+  if (shots.length === 0) {
+    return false;
+  }
+
+  return filterShotsNewerThanWatermark(shots, watermarkIso).length === 0;
 }

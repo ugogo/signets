@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { SyncPayload } from '@signets/shared';
+import type { ShotKind } from '@prisma/client';
+import type { SyncPayload, SyncResult, SyncState } from '@signets/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -14,7 +15,15 @@ export class SyncService {
     this.userSlug = config.get<string>('USER_SLUG') ?? 'default';
   }
 
-  async upsertShots(payload: SyncPayload) {
+  async getState(): Promise<SyncState> {
+    const user = await this.ensureUser();
+
+    return {
+      lastBookmarkSyncAt: user.lastBookmarkSyncAt?.toISOString() ?? null,
+    };
+  }
+
+  async upsertShots(payload: SyncPayload): Promise<SyncResult> {
     const user = await this.ensureUser();
 
     await this.prisma.$transaction(
@@ -26,11 +35,13 @@ export class SyncService {
             bookmarkedAt: new Date(shot.bookmarkedAt),
             caption: shot.caption ?? null,
             height: shot.height ?? null,
-            imageIndex: shot.imageIndex,
-            imageUrl: shot.imageUrl,
+            kind: shot.kind as ShotKind,
+            mediaId: shot.mediaId,
+            mediaPosterUrl: shot.mediaPosterUrl ?? null,
+            mediaUrl: shot.mediaUrl,
+            postId: shot.postId,
             userId: user.id,
             width: shot.width ?? null,
-            xPostId: shot.xPostId,
           },
           update: {
             authorHandle: shot.authorHandle,
@@ -38,21 +49,42 @@ export class SyncService {
             bookmarkedAt: new Date(shot.bookmarkedAt),
             caption: shot.caption ?? null,
             height: shot.height ?? null,
-            imageUrl: shot.imageUrl,
+            kind: shot.kind as ShotKind,
+            mediaPosterUrl: shot.mediaPosterUrl ?? null,
+            mediaUrl: shot.mediaUrl,
+            postId: shot.postId,
             width: shot.width ?? null,
           },
           where: {
-            userId_xPostId_imageIndex: {
-              imageIndex: shot.imageIndex,
+            userId_mediaId: {
+              mediaId: shot.mediaId,
               userId: user.id,
-              xPostId: shot.xPostId,
             },
           },
         }),
       ),
     );
 
-    return { upserted: payload.shots.length };
+    const newestBookmarkedAt = payload.shots.reduce((latest, shot) => {
+      const at = new Date(shot.bookmarkedAt);
+      return at > latest ? at : latest;
+    }, new Date(0));
+
+    const previousWatermark = user.lastBookmarkSyncAt ?? new Date(0);
+    const lastBookmarkSyncAt =
+      newestBookmarkedAt > previousWatermark
+        ? newestBookmarkedAt
+        : previousWatermark;
+
+    await this.prisma.user.update({
+      data: { lastBookmarkSyncAt },
+      where: { id: user.id },
+    });
+
+    return {
+      lastBookmarkSyncAt: lastBookmarkSyncAt.toISOString(),
+      upserted: payload.shots.length,
+    };
   }
 
   private async ensureUser() {

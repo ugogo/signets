@@ -1,4 +1,4 @@
-import type { SyncPayload, SyncResult } from '@signets/shared';
+import type { SyncPayload, SyncResult, SyncState } from '@signets/shared';
 
 import type { Settings } from './settings.js';
 
@@ -95,6 +95,25 @@ async function requestSync(
   } catch (error) {
     throw new SyncRequestError(formatNetworkError(error, settings.apiUrl, action), 0);
   }
+}
+
+export async function fetchSyncState(settings: Settings): Promise<SyncState> {
+  const response = await requestSync(
+    settings,
+    '/sync/state',
+    { headers: authHeaders(settings.syncToken) },
+    'fetching sync state',
+  );
+
+  if (!response.ok) {
+    const detail = await readErrorMessage(response);
+    throw new SyncRequestError(
+      formatSyncFailure(response.status, settings.apiUrl, detail),
+      response.status,
+    );
+  }
+
+  return (await response.json()) as SyncState;
 }
 
 export async function verifySyncCredentials(settings: Settings): Promise<void> {

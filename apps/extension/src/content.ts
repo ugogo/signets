@@ -5,7 +5,12 @@ import {
   extractBottomCursor,
   type BookmarksRequestParams,
 } from './bookmarks-api.js';
-import { countTimelineEntries, normalizeBookmarksResponse } from './bookmarks-parser.js';
+import {
+  countTimelineEntries,
+  filterShotsNewerThanWatermark,
+  isOlderThanWatermark,
+  normalizeBookmarksResponse,
+} from './bookmarks-parser.js';
 import {
   BOOKMARKS_REQUEST_EVENT,
   BOOKMARKS_RESPONSE_EVENT,
@@ -18,26 +23,52 @@ import {
 } from './sync-overlay.js';
 
 const capturedShots: SyncShotInput[] = [];
+const pendingBookmarkBodies: unknown[] = [];
 const PAGE_FETCH_DELAY_MS = 600;
 const REQUEST_PARAMS_TIMEOUT_MS = 20_000;
 
 let captureAborted = false;
+let captureReady = false;
 let bookmarksResponseSeen = false;
+let captureWatermark: null | string | undefined;
 let lastBottomCursor: string | undefined;
 let capturedRequestParams: BookmarksRequestParams | undefined;
+let reachedSyncWatermark = false;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function resetCaptureState(
+  lastBookmarkSyncAt?: null | string,
+): void {
+  capturedShots.length = 0;
+  captureWatermark = lastBookmarkSyncAt ?? null;
+  bookmarksResponseSeen = false;
+  lastBottomCursor = undefined;
+  capturedRequestParams = undefined;
+  reachedSyncWatermark = false;
+  captureAborted = false;
+  captureReady = false;
+}
+
+function emitBookmarksIntercepted(result: {
+  entries: number;
+  newShots: number;
+  parsed: number;
+}): void {
+  void chrome.runtime.sendMessage({
+    entries: result.entries,
+    parsed: result.parsed,
+    total: capturedShots.length,
+    type: 'bookmarks-intercepted',
+    ...(captureWatermark ? { newShots: result.newShots } : {}),
+  });
+}
+
 function addCapturedShots(shots: SyncShotInput[]): void {
   for (const shot of shots) {
-    const key = `${shot.xPostId}:${shot.imageIndex}`;
-    if (
-      !capturedShots.some(
-        (existing) => `${existing.xPostId}:${existing.imageIndex}` === key,
-      )
-    ) {
+    if (!capturedShots.some((existing) => existing.mediaId === shot.mediaId)) {
       capturedShots.push(shot);
     }
   }
@@ -50,34 +81,67 @@ function addCapturedShots(shots: SyncShotInput[]): void {
   });
 }
 
-function processBookmarksBody(body: unknown): void {
+function ingestBookmarksBody(body: unknown): {
+  entries: number;
+  newShots: number;
+  parsed: number;
+} {
   bookmarksResponseSeen = true;
-  let parsed = 0;
-  let entries = 0;
 
   try {
     const typedBody = body as Parameters<typeof normalizeBookmarksResponse>[0];
-    entries = countTimelineEntries(typedBody);
-    const shots = normalizeBookmarksResponse(typedBody);
-    parsed = shots.length;
-    lastBottomCursor = extractBottomCursor(typedBody);
-    if (shots.length > 0) {
-      addCapturedShots(shots);
-    }
-  } catch {
-    // Ignore malformed bookmark payloads.
-  }
+    const entries = countTimelineEntries(typedBody);
+    const parsedShots = normalizeBookmarksResponse(typedBody);
+    const newShots = filterShotsNewerThanWatermark(
+      parsedShots,
+      captureWatermark,
+    );
 
-  void chrome.runtime.sendMessage({
-    entries,
-    parsed,
-    total: capturedShots.length,
-    type: 'bookmarks-intercepted',
-  });
+    lastBottomCursor = extractBottomCursor(typedBody);
+
+    if (
+      captureWatermark &&
+      parsedShots.length > 0 &&
+      newShots.length === 0
+    ) {
+      reachedSyncWatermark = true;
+    }
+
+    if (newShots.length > 0) {
+      addCapturedShots(newShots);
+    }
+
+    return {
+      entries,
+      newShots: newShots.length,
+      parsed: parsedShots.length,
+    };
+  } catch {
+    return { entries: 0, newShots: 0, parsed: 0 };
+  }
+}
+
+function processBookmarksBody(body: unknown): void {
+  emitBookmarksIntercepted(ingestBookmarksBody(body));
+}
+
+function flushPendingBookmarkBodies(): void {
+  while (pendingBookmarkBodies.length > 0) {
+    const body = pendingBookmarkBodies.shift();
+    if (body) {
+      processBookmarksBody(body);
+    }
+  }
 }
 
 window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
-  processBookmarksBody((event as CustomEvent).detail);
+  const body = (event as CustomEvent).detail;
+  if (!captureReady) {
+    pendingBookmarkBodies.push(body);
+    return;
+  }
+
+  processBookmarksBody(body);
 });
 
 window.addEventListener(BOOKMARKS_REQUEST_EVENT, (event) => {
@@ -145,8 +209,12 @@ function requestStopCapture(): void {
   void chrome.runtime.sendMessage({ type: 'stop-sync' }).catch(() => undefined);
 }
 
-async function captureAllBookmarks(): Promise<{ count: number; stopped: boolean }> {
-  captureAborted = false;
+async function captureAllBookmarks(
+  lastBookmarkSyncAt?: null | string,
+): Promise<{ count: number; stopped: boolean }> {
+  resetCaptureState(lastBookmarkSyncAt);
+  captureReady = true;
+  flushPendingBookmarkBodies();
   showSyncOverlay(requestStopCapture);
   updateSyncOverlay(capturedShots.length);
 
@@ -164,6 +232,10 @@ async function captureAllBookmarks(): Promise<{ count: number; stopped: boolean 
       await sleep(300);
     }
 
+    if (reachedSyncWatermark) {
+      return { count: capturedShots.length, stopped: captureAborted };
+    }
+
     let cursor = lastBottomCursor;
     let idlePages = 0;
 
@@ -173,7 +245,21 @@ async function captureAllBookmarks(): Promise<{ count: number; stopped: boolean 
 
       try {
         const body = await fetchBookmarksPage(params, cursor);
-        processBookmarksBody(body);
+        const pageResult = ingestBookmarksBody(body);
+        emitBookmarksIntercepted(pageResult);
+
+        if (
+          captureWatermark &&
+          (reachedSyncWatermark ||
+            isOlderThanWatermark(
+              normalizeBookmarksResponse(
+                body as Parameters<typeof normalizeBookmarksResponse>[0],
+              ),
+              captureWatermark,
+            ))
+        ) {
+          break;
+        }
       } catch {
         break;
       }
@@ -205,10 +291,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'clear-captured-shots') {
-    capturedShots.length = 0;
-    bookmarksResponseSeen = false;
-    lastBottomCursor = undefined;
-    capturedRequestParams = undefined;
+    resetCaptureState();
+    pendingBookmarkBodies.length = 0;
     sendResponse({ ok: true });
     return;
   }
@@ -225,7 +309,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'start-auto-scroll') {
-    void captureAllBookmarks().then((result) => {
+    void captureAllBookmarks(message.lastBookmarkSyncAt).then((result) => {
       sendResponse(result);
     });
     return true;

@@ -3,17 +3,33 @@ import { z } from 'zod';
 export const SHOTS_PAGE_SIZE = 24;
 export const SHOTS_PAGE_SIZE_MAX = 100;
 
-export const syncShotInputSchema = z.object({
-  authorHandle: z.string().min(1),
-  authorName: z.string().optional(),
-  bookmarkedAt: z.string().datetime(),
-  caption: z.string().optional(),
-  height: z.number().int().positive().optional(),
-  imageIndex: z.number().int().min(0).max(3),
-  imageUrl: z.string().url(),
-  width: z.number().int().positive().optional(),
-  xPostId: z.string().min(1),
-});
+export const shotKindSchema = z.enum(['photo', 'video', 'animated_gif']);
+
+export type ShotKind = z.infer<typeof shotKindSchema>;
+
+export const syncShotInputSchema = z
+  .object({
+    authorHandle: z.string().min(1),
+    authorName: z.string().optional(),
+    bookmarkedAt: z.string().datetime(),
+    caption: z.string().optional(),
+    height: z.number().int().positive().optional(),
+    kind: shotKindSchema,
+    mediaId: z.string().min(1),
+    mediaPosterUrl: z.string().url().optional(),
+    mediaUrl: z.string().url(),
+    postId: z.string().min(1),
+    width: z.number().int().positive().optional(),
+  })
+  .superRefine((shot, ctx) => {
+    if (shot.kind !== 'photo' && !shot.mediaPosterUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'mediaPosterUrl is required for video and animated GIF shots',
+        path: ['mediaPosterUrl'],
+      });
+    }
+  });
 
 export const syncPayloadSchema = z.object({
   shots: z.array(syncShotInputSchema).min(1),
@@ -30,12 +46,14 @@ export const shotSchema = z.object({
   createdAt: z.string().datetime(),
   height: z.number().int().positive().nullable(),
   id: z.string().uuid(),
-  imageIndex: z.number().int(),
-  imageUrl: z.string().url(),
   isFavorite: z.boolean(),
+  kind: shotKindSchema,
+  mediaId: z.string(),
+  mediaPosterUrl: z.string().url().nullable(),
+  mediaUrl: z.string().url(),
+  postId: z.string(),
   updatedAt: z.string().datetime(),
   width: z.number().int().positive().nullable(),
-  xPostId: z.string(),
 });
 
 export type Shot = z.infer<typeof shotSchema>;
@@ -131,7 +149,14 @@ export function decodeShotCursor(encoded: string): ShotCursor | null {
   }
 }
 
+export const syncStateSchema = z.object({
+  lastBookmarkSyncAt: z.string().datetime().nullable(),
+});
+
+export type SyncState = z.infer<typeof syncStateSchema>;
+
 export const syncResultSchema = z.object({
+  lastBookmarkSyncAt: z.string().datetime(),
   upserted: z.number().int().nonnegative(),
 });
 
