@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma, Shot as PrismaShot } from '@prisma/client';
 import type {
@@ -126,12 +123,7 @@ export class ShotsService {
       return undefined;
     }
 
-    const decoded = decodeShotCursor(cursor);
-    if (!decoded) {
-      throw new BadRequestException('Invalid cursor');
-    }
-
-    return decoded;
+    return decodeShotCursor(cursor) ?? undefined;
   }
 
   private buildShotWhere(

@@ -1,24 +1,44 @@
 import {
   createStandardSchemaV1,
-  parseAsBoolean,
-  parseAsInteger,
-  parseAsString,
-  parseAsStringLiteral,
+  createParser,
 } from 'nuqs';
+import {
+  DEFAULT_DENSITY,
+  DEFAULT_VIEW_MODE,
+  librarySearchParamsPartialSchema,
+  type ViewMode,
+} from '@signets/shared';
 
-export type ViewMode = 'canvas' | 'wall';
+export type { ViewMode };
 
-export const DEFAULT_DENSITY = 55;
-export const DEFAULT_VIEW_MODE: ViewMode = 'wall';
+export { DEFAULT_DENSITY, DEFAULT_VIEW_MODE };
+
+function fieldParser<T>(schema: {
+  safeParse: (value: unknown) => { success: true; data: T } | { success: false };
+}) {
+  return createParser({
+    parse(value) {
+      const parsed = schema.safeParse(value);
+      return parsed.success ? parsed.data : null;
+    },
+    serialize(value) {
+      return String(value);
+    },
+  });
+}
 
 export const librarySearchParams = {
-  author: parseAsString,
-  density: parseAsInteger.withDefault(DEFAULT_DENSITY),
-  favorites: parseAsBoolean.withDefault(false),
-  search: parseAsString,
-  viewMode: parseAsStringLiteral(['wall', 'canvas'] as const).withDefault(
-    DEFAULT_VIEW_MODE,
+  author: fieldParser(librarySearchParamsPartialSchema.shape.author),
+  density: fieldParser(librarySearchParamsPartialSchema.shape.density).withDefault(
+    DEFAULT_DENSITY,
   ),
+  favorites: fieldParser(
+    librarySearchParamsPartialSchema.shape.favorites,
+  ).withDefault(false),
+  search: fieldParser(librarySearchParamsPartialSchema.shape.search),
+  viewMode: fieldParser(
+    librarySearchParamsPartialSchema.shape.viewMode,
+  ).withDefault(DEFAULT_VIEW_MODE),
 };
 
 export const librarySearchSchema = createStandardSchemaV1(librarySearchParams, {

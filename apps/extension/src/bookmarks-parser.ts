@@ -1,4 +1,5 @@
 import type { ShotKind, SyncShotInput } from '@signets/shared';
+import { validateSyncShotInput } from '@signets/shared';
 
 const TWITTER_EPOCH_MS = 1288834974657;
 
@@ -190,7 +191,7 @@ function mediaToShot(
       return undefined;
     }
 
-    return {
+    return validateSyncShotInput({
       authorHandle: author.handle,
       authorName: author.name,
       bookmarkedAt,
@@ -201,7 +202,7 @@ function mediaToShot(
       mediaUrl: `${media.media_url_https}?name=large`,
       postId,
       width: width && width > 0 ? width : undefined,
-    };
+    });
   }
 
   const mediaUrl = pickMp4Variant(media);
@@ -209,7 +210,7 @@ function mediaToShot(
     return undefined;
   }
 
-  return {
+  return validateSyncShotInput({
     authorHandle: author.handle,
     authorName: author.name,
     bookmarkedAt,
@@ -221,7 +222,7 @@ function mediaToShot(
     mediaUrl,
     postId,
     width: width && width > 0 ? width : undefined,
-  };
+  });
 }
 
 function extractAuthor(user: BookmarkUserResult | undefined): {

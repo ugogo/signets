@@ -61,9 +61,28 @@ describe('Sync and shots (e2e)', () => {
       return;
     }
 
-    await request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .get('/shots')
       .query({ cursor: 'not-a-cursor' })
+      .expect(400);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        statusCode: 400,
+        error: 'Validation failed',
+        issues: expect.any(Array),
+      }),
+    );
+  });
+
+  it('rejects an invalid shots limit', async () => {
+    if (!app) {
+      return;
+    }
+
+    await request(app.getHttpServer())
+      .get('/shots')
+      .query({ limit: '999' })
       .expect(400);
   });
 

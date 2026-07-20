@@ -1,25 +1,30 @@
-import type { ListShotsResponse } from '@signets/shared';
+import {
+  listShotAuthorsResponseSchema,
+  listShotsResponseSchema,
+  parseJsonResponse,
+  type ListShotsQuery,
+  type ListShotAuthorsQuery,
+} from '@signets/shared';
 
 /** Keep in sync with SHOTS_PAGE_SIZE in @signets/shared */
 const SHOTS_PAGE_SIZE = 24;
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
-export interface ListShotsParams {
-  author?: string;
-  favorites?: boolean;
-  search?: string;
-}
+export type ListShotsParams = Pick<
+  ListShotsQuery,
+  'author' | 'favorites' | 'search'
+>;
 
-export interface ListShotAuthorsParams {
-  favorites?: boolean;
-  search?: string;
-}
+export type ListShotAuthorsParams = Pick<
+  ListShotAuthorsQuery,
+  'favorites' | 'search'
+>;
 
 export async function fetchShotsPage(
   params: ListShotsParams = {},
   cursor?: string,
-): Promise<ListShotsResponse> {
+): Promise<Awaited<ReturnType<typeof listShotsResponseSchema.parse>>> {
   const url = new URL('/shots', apiBaseUrl);
 
   url.searchParams.set('limit', String(SHOTS_PAGE_SIZE));
@@ -42,12 +47,12 @@ export async function fetchShotsPage(
     throw new Error(`Failed to load shots (${response.status})`);
   }
 
-  return response.json() as Promise<ListShotsResponse>;
+  return parseJsonResponse(listShotsResponseSchema, response);
 }
 
 export async function fetchShotAuthors(
   params: ListShotAuthorsParams = {},
-): Promise<string[]> {
+): Promise<Awaited<ReturnType<typeof listShotAuthorsResponseSchema.parse>>> {
   const url = new URL('/shots/authors', apiBaseUrl);
 
   if (params.search) {
@@ -62,7 +67,7 @@ export async function fetchShotAuthors(
     throw new Error(`Failed to load authors (${response.status})`);
   }
 
-  return response.json() as Promise<string[]>;
+  return parseJsonResponse(listShotAuthorsResponseSchema, response);
 }
 
 export function xThumbnailUrl(

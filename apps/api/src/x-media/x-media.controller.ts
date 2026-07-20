@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Controller,
   Get,
   Query,
@@ -7,8 +6,11 @@ import {
   Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { XMediaQuery } from '@signets/shared';
+import { xMediaQuerySchema } from '@signets/shared';
 import type { Request, Response } from 'express';
 
+import { zodPipe } from '../common/zod-validation.pipe.js';
 import { XMediaService } from './x-media.service.js';
 
 @Controller('x/media')
@@ -18,14 +20,10 @@ export class XMediaController {
   @Get()
   @Throttle({ default: { limit: 240, ttl: 60_000 } })
   async proxy(
-    @Query('url') url: string | undefined,
+    @Query(zodPipe(xMediaQuerySchema)) query: XMediaQuery,
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    if (!url) {
-      throw new BadRequestException('Missing url parameter');
-    }
-
-    await this.xMediaService.pipe(url, req, res);
+    await this.xMediaService.pipe(query.url, req, res);
   }
 }
