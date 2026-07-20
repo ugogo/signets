@@ -70,11 +70,11 @@ export class SyncService {
       return at > latest ? at : latest;
     }, new Date(0));
 
-    const previousWatermark = user.lastBookmarkSyncAt ?? new Date(0);
+    const previousLastBookmarkSyncAt = user.lastBookmarkSyncAt ?? new Date(0);
     const lastBookmarkSyncAt =
-      newestBookmarkedAt > previousWatermark
+      newestBookmarkedAt > previousLastBookmarkSyncAt
         ? newestBookmarkedAt
-        : previousWatermark;
+        : previousLastBookmarkSyncAt;
 
     await this.prisma.user.update({
       data: { lastBookmarkSyncAt },
