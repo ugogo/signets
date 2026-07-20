@@ -7,8 +7,8 @@ import {
 } from './bookmarks-api.js';
 import {
   countTimelineEntries,
-  filterShotsNewerThanWatermark,
-  isOlderThanWatermark,
+  filterShotsNewerThanLastSync,
+  isAtOrBeforeLastSync,
   normalizeBookmarksResponse,
 } from './bookmarks-parser.js';
 import {
@@ -30,10 +30,10 @@ const REQUEST_PARAMS_TIMEOUT_MS = 20_000;
 let captureAborted = false;
 let captureReady = false;
 let bookmarksResponseSeen = false;
-let captureWatermark: null | string | undefined;
+let activeLastBookmarkSyncAt: null | string = null;
 let lastBottomCursor: string | undefined;
 let capturedRequestParams: BookmarksRequestParams | undefined;
-let reachedSyncWatermark = false;
+let reachedLastBookmarkSync = false;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -43,11 +43,11 @@ function resetCaptureState(
   lastBookmarkSyncAt?: null | string,
 ): void {
   capturedShots.length = 0;
-  captureWatermark = lastBookmarkSyncAt ?? null;
+  activeLastBookmarkSyncAt = lastBookmarkSyncAt ?? null;
   bookmarksResponseSeen = false;
   lastBottomCursor = undefined;
   capturedRequestParams = undefined;
-  reachedSyncWatermark = false;
+  reachedLastBookmarkSync = false;
   captureAborted = false;
   captureReady = false;
 }
@@ -62,7 +62,7 @@ function emitBookmarksIntercepted(result: {
     parsed: result.parsed,
     total: capturedShots.length,
     type: 'bookmarks-intercepted',
-    ...(captureWatermark ? { newShots: result.newShots } : {}),
+    ...(activeLastBookmarkSyncAt ? { newShots: result.newShots } : {}),
   });
 }
 
@@ -92,19 +92,19 @@ function ingestBookmarksBody(body: unknown): {
     const typedBody = body as Parameters<typeof normalizeBookmarksResponse>[0];
     const entries = countTimelineEntries(typedBody);
     const parsedShots = normalizeBookmarksResponse(typedBody);
-    const newShots = filterShotsNewerThanWatermark(
+    const newShots = filterShotsNewerThanLastSync(
       parsedShots,
-      captureWatermark,
+      activeLastBookmarkSyncAt,
     );
 
     lastBottomCursor = extractBottomCursor(typedBody);
 
     if (
-      captureWatermark &&
+      activeLastBookmarkSyncAt &&
       parsedShots.length > 0 &&
       newShots.length === 0
     ) {
-      reachedSyncWatermark = true;
+      reachedLastBookmarkSync = true;
     }
 
     if (newShots.length > 0) {
@@ -232,7 +232,7 @@ async function captureAllBookmarks(
       await sleep(300);
     }
 
-    if (reachedSyncWatermark) {
+    if (reachedLastBookmarkSync) {
       return { count: capturedShots.length, stopped: captureAborted };
     }
 
@@ -249,13 +249,13 @@ async function captureAllBookmarks(
         emitBookmarksIntercepted(pageResult);
 
         if (
-          captureWatermark &&
-          (reachedSyncWatermark ||
-            isOlderThanWatermark(
+          activeLastBookmarkSyncAt &&
+          (reachedLastBookmarkSync ||
+            isAtOrBeforeLastSync(
               normalizeBookmarksResponse(
                 body as Parameters<typeof normalizeBookmarksResponse>[0],
               ),
-              captureWatermark,
+              activeLastBookmarkSyncAt,
             ))
         ) {
           break;

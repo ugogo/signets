@@ -394,29 +394,29 @@ export function countTimelineEntries(body: BookmarksResponse): number {
   return collectTimelineEntries(body).length;
 }
 
-export function filterShotsNewerThanWatermark(
+export function filterShotsNewerThanLastSync(
   shots: SyncShotInput[],
-  watermarkIso: string | null | undefined,
+  lastBookmarkSyncAt: string | null | undefined,
 ): SyncShotInput[] {
-  if (!watermarkIso) {
+  if (!lastBookmarkSyncAt) {
     return shots;
   }
 
-  const watermarkMs = Date.parse(watermarkIso);
-  if (Number.isNaN(watermarkMs)) {
+  const lastSyncMs = Date.parse(lastBookmarkSyncAt);
+  if (Number.isNaN(lastSyncMs)) {
     return shots;
   }
 
-  return shots.filter((shot) => Date.parse(shot.bookmarkedAt) > watermarkMs);
+  return shots.filter((shot) => Date.parse(shot.bookmarkedAt) > lastSyncMs);
 }
 
-export function isOlderThanWatermark(
+export function isAtOrBeforeLastSync(
   shots: SyncShotInput[],
-  watermarkIso: string,
+  lastBookmarkSyncAt: string,
 ): boolean {
   if (shots.length === 0) {
     return false;
   }
 
-  return filterShotsNewerThanWatermark(shots, watermarkIso).length === 0;
+  return filterShotsNewerThanLastSync(shots, lastBookmarkSyncAt).length === 0;
 }
