@@ -1,173 +1,161 @@
-import type { SyncPayload, SyncResult, SyncShotInput } from '@signets/shared';
+import { z } from 'zod';
 
-import type { LogEntry } from './log.js';
-import type { SyncState } from './constants.js';
+import {
+  syncPayloadSchema,
+  syncResultSchema,
+  syncShotInputSchema,
+} from '@signets/shared';
 
-export type ExtensionMessage =
-  | { count: number; type: 'shots-captured' }
-  | { entries: number; newShots?: number; parsed: number; total: number; type: 'bookmarks-intercepted' }
-  | { type: 'clear-captured-shots' }
-  | { type: 'clear-logs' }
-  | { type: 'dry-run' }
-  | { type: 'get-captured-shots' }
-  | { type: 'get-logs' }
-  | { type: 'get-sync-state' }
-  | { lastBookmarkSyncAt?: null | string; type: 'start-auto-scroll' }
-  | { type: 'stop-auto-scroll' }
-  | { type: 'stop-sync' }
-  | { type: 'sync-now' };
+export const extensionActivityStateSchema = z.enum([
+  'idle',
+  'scrolling',
+  'uploading',
+]);
 
-type ExtensionMessageType = ExtensionMessage['type'];
+export type ExtensionActivityState = z.infer<
+  typeof extensionActivityStateSchema
+>;
 
-// Single source of truth for the runtime guard: the exhaustive Record forces a
-// compile error when a new ExtensionMessage variant is added but not registered.
-const EXTENSION_MESSAGE_TYPES: Record<ExtensionMessageType, true> = {
-  'bookmarks-intercepted': true,
-  'clear-captured-shots': true,
-  'clear-logs': true,
-  'dry-run': true,
-  'get-captured-shots': true,
-  'get-logs': true,
-  'get-sync-state': true,
-  'shots-captured': true,
-  'start-auto-scroll': true,
-  'stop-auto-scroll': true,
-  'stop-sync': true,
-  'sync-now': true,
-};
+/** @deprecated Use ExtensionActivityState */
+export type SyncState = ExtensionActivityState;
 
-export type BackgroundBroadcast =
-  | { logs: LogEntry[]; type: 'log-updated' }
-  | { state: SyncState; type: 'sync-state-changed' };
+export const logLevelSchema = z.enum(['error', 'info', 'success', 'warn']);
 
-export type GetCapturedShotsResponse = {
-  shots: SyncShotInput[];
-};
+export const logEntrySchema = z.object({
+  level: logLevelSchema,
+  message: z.string(),
+  timestamp: z.number(),
+});
 
-export type AutoScrollResponse = {
-  count: number;
-  stopped: boolean;
-};
+export type LogEntry = z.infer<typeof logEntrySchema>;
 
-export type SyncNowResponse =
-  | {
-      captured: number;
-      ok: true;
-      result: SyncResult;
-    }
-  | {
-      error: string;
-      ok: false;
-    };
+export const extensionMessageSchema = z.discriminatedUnion('type', [
+  z.object({ count: z.number(), type: z.literal('shots-captured') }),
+  z.object({
+    entries: z.number(),
+    newShots: z.number().optional(),
+    parsed: z.number(),
+    total: z.number(),
+    type: z.literal('bookmarks-intercepted'),
+  }),
+  z.object({ type: z.literal('clear-captured-shots') }),
+  z.object({ type: z.literal('clear-logs') }),
+  z.object({ type: z.literal('dry-run') }),
+  z.object({ type: z.literal('get-captured-shots') }),
+  z.object({ type: z.literal('get-logs') }),
+  z.object({ type: z.literal('get-sync-state') }),
+  z.object({
+    lastBookmarkSyncAt: z.iso.datetime().nullable().optional(),
+    type: z.literal('start-auto-scroll'),
+  }),
+  z.object({ type: z.literal('stop-auto-scroll') }),
+  z.object({ type: z.literal('stop-sync') }),
+  z.object({ type: z.literal('sync-now') }),
+]);
 
-export type DryRunResponse =
-  | {
-      captured: number;
-      ok: true;
-      payload: SyncPayload;
-    }
-  | {
-      error: string;
-      ok: false;
-    };
+export type ExtensionMessage = z.infer<typeof extensionMessageSchema>;
 
-export type SyncStateResponse = {
-  state: SyncState;
-};
+export const backgroundBroadcastSchema = z.discriminatedUnion('type', [
+  z.object({
+    logs: z.array(logEntrySchema),
+    type: z.literal('log-updated'),
+  }),
+  z.object({
+    state: extensionActivityStateSchema,
+    type: z.literal('sync-state-changed'),
+  }),
+]);
 
-export function isExtensionMessage(value: unknown): value is ExtensionMessage {
-  if (typeof value !== 'object' || value === null || !('type' in value)) {
-    return false;
-  }
+export type BackgroundBroadcast = z.infer<typeof backgroundBroadcastSchema>;
 
-  const message = value as { type?: unknown };
-  return (
-    typeof message.type === 'string' &&
-    Object.hasOwn(EXTENSION_MESSAGE_TYPES, message.type)
-  );
+export const getCapturedShotsResponseSchema = z.object({
+  shots: z.array(syncShotInputSchema),
+});
+
+export type GetCapturedShotsResponse = z.infer<
+  typeof getCapturedShotsResponseSchema
+>;
+
+export const autoScrollResponseSchema = z.object({
+  count: z.number(),
+  stopped: z.boolean(),
+});
+
+export type AutoScrollResponse = z.infer<typeof autoScrollResponseSchema>;
+
+export const syncNowResponseSchema = z.discriminatedUnion('ok', [
+  z.object({
+    captured: z.number(),
+    ok: z.literal(true),
+    result: syncResultSchema,
+  }),
+  z.object({
+    error: z.string(),
+    ok: z.literal(false),
+  }),
+]);
+
+export type SyncNowResponse = z.infer<typeof syncNowResponseSchema>;
+
+export const dryRunResponseSchema = z.discriminatedUnion('ok', [
+  z.object({
+    captured: z.number(),
+    ok: z.literal(true),
+    payload: syncPayloadSchema,
+  }),
+  z.object({
+    error: z.string(),
+    ok: z.literal(false),
+  }),
+]);
+
+export type DryRunResponse = z.infer<typeof dryRunResponseSchema>;
+
+export const extensionSyncStateResponseSchema = z.object({
+  state: extensionActivityStateSchema,
+});
+
+export type ExtensionSyncStateResponse = z.infer<
+  typeof extensionSyncStateResponseSchema
+>;
+
+export function isExtensionMessage(
+  value: unknown,
+): value is ExtensionMessage {
+  return extensionMessageSchema.safeParse(value).success;
 }
 
 export function isBackgroundBroadcast(
   value: unknown,
 ): value is BackgroundBroadcast {
-  if (typeof value !== 'object' || value === null || !('type' in value)) {
-    return false;
-  }
-
-  const message = value as { type?: unknown };
-  return message.type === 'log-updated' || message.type === 'sync-state-changed';
+  return backgroundBroadcastSchema.safeParse(value).success;
 }
 
 export function isGetCapturedShotsResponse(
   value: unknown,
 ): value is GetCapturedShotsResponse {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'shots' in value &&
-    Array.isArray((value as GetCapturedShotsResponse).shots)
-  );
+  return getCapturedShotsResponseSchema.safeParse(value).success;
 }
 
 export function isAutoScrollResponse(
   value: unknown,
 ): value is AutoScrollResponse {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'count' in value &&
-    typeof (value as AutoScrollResponse).count === 'number' &&
-    'stopped' in value &&
-    typeof (value as AutoScrollResponse).stopped === 'boolean'
-  );
+  return autoScrollResponseSchema.safeParse(value).success;
 }
 
 export function isSyncNowResponse(value: unknown): value is SyncNowResponse {
-  if (typeof value !== 'object' || value === null || !('ok' in value)) {
-    return false;
-  }
-
-  const response = value as SyncNowResponse;
-  if (response.ok) {
-    return (
-      typeof response.captured === 'number' &&
-      typeof response.result === 'object' &&
-      response.result !== null &&
-      'upserted' in response.result &&
-      'lastBookmarkSyncAt' in response.result
-    );
-  }
-
-  return typeof response.error === 'string';
+  return syncNowResponseSchema.safeParse(value).success;
 }
 
 export function isDryRunResponse(value: unknown): value is DryRunResponse {
-  if (typeof value !== 'object' || value === null || !('ok' in value)) {
-    return false;
-  }
-
-  const response = value as DryRunResponse;
-  if (response.ok) {
-    return (
-      typeof response.captured === 'number' &&
-      typeof response.payload === 'object' &&
-      response.payload !== null &&
-      Array.isArray(response.payload.shots)
-    );
-  }
-
-  return typeof response.error === 'string';
+  return dryRunResponseSchema.safeParse(value).success;
 }
 
-export function isSyncStateResponse(
+export function isExtensionSyncStateResponse(
   value: unknown,
-): value is SyncStateResponse {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'state' in value &&
-    ((value as SyncStateResponse).state === 'idle' ||
-      (value as SyncStateResponse).state === 'scrolling' ||
-      (value as SyncStateResponse).state === 'uploading')
-  );
+): value is ExtensionSyncStateResponse {
+  return extensionSyncStateResponseSchema.safeParse(value).success;
 }
+
+/** @deprecated Use isExtensionSyncStateResponse */
+export const isSyncStateResponse = isExtensionSyncStateResponse;

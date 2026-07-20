@@ -147,7 +147,7 @@ function Home() {
         void setFilters({ viewMode: nextViewMode });
       }}
       search={search ?? ''}
-      selectedAuthor={author}
+      selectedAuthor={author ?? null}
       shotCount={shotCount}
       viewMode={viewMode}
     >

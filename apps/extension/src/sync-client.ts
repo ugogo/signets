@@ -1,4 +1,11 @@
-import type { SyncPayload, SyncResult, SyncState } from '@signets/shared';
+import {
+  parseJsonResponse,
+  syncResultSchema,
+  syncStateSchema,
+  type SyncPayload,
+  type SyncResult,
+  type SyncState,
+} from '@signets/shared';
 
 import type { Settings } from './settings.js';
 
@@ -20,8 +27,13 @@ function authHeaders(syncToken: string): HeadersInit {
 
 async function readErrorMessage(response: Response): Promise<string | undefined> {
   try {
-    const body = (await response.json()) as Record<string, unknown>;
-    const message = body.message;
+    const body: unknown = await response.json();
+    if (!body || typeof body !== 'object') {
+      return undefined;
+    }
+
+    const record = body as Record<string, unknown>;
+    const message = record.message;
 
     if (typeof message === 'string' && message.length > 0) {
       return message;
@@ -35,8 +47,18 @@ async function readErrorMessage(response: Response): Promise<string | undefined>
       return JSON.stringify(message);
     }
 
-    if (typeof body.error === 'string' && body.error.length > 0) {
-      return body.error;
+    if (typeof record.error === 'string' && record.error.length > 0) {
+      return record.error;
+    }
+
+    if (Array.isArray(record.issues)) {
+      return record.issues
+        .map((issue) =>
+          issue && typeof issue === 'object' && 'message' in issue
+            ? String((issue as { message: unknown }).message)
+            : String(issue),
+        )
+        .join(', ');
     }
   } catch {
     // Ignore unreadable error bodies.
@@ -97,7 +119,9 @@ async function requestSync(
   }
 }
 
-export async function fetchSyncState(settings: Settings): Promise<SyncState> {
+export async function fetchSyncState(
+  settings: Settings,
+): Promise<SyncState> {
   const response = await requestSync(
     settings,
     '/sync/state',
@@ -113,7 +137,7 @@ export async function fetchSyncState(settings: Settings): Promise<SyncState> {
     );
   }
 
-  return (await response.json()) as SyncState;
+  return parseJsonResponse(syncStateSchema, response);
 }
 
 export async function verifySyncCredentials(settings: Settings): Promise<void> {
@@ -163,5 +187,5 @@ export async function uploadSyncBatch(
     );
   }
 
-  return (await response.json()) as SyncResult;
+  return parseJsonResponse(syncResultSchema, response);
 }
