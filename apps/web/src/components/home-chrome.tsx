@@ -1,4 +1,6 @@
 import {
+  Check,
+  Copy,
   Heart,
   LayoutGrid,
   Map,
@@ -26,13 +28,19 @@ import { ThemeToggle } from './theme-toggle';
 
 export interface HomeChromeProps {
   authors: string[];
+  canCurate: boolean;
   children: ReactNode;
+  curationToken: string;
   density: number;
   favoritesOnly: boolean;
   isCanvas: boolean;
   onAuthorToggle: (authorHandle: string) => void;
+  onClearCurationToken: () => void;
+  onCopyLink: () => void;
+  onCurationTokenChange: (token: string) => void;
   onDensityChange: (density: number) => void;
   onFavoritesOnlyChange: (favoritesOnly: boolean) => void;
+  onSaveCurationToken: () => void;
   onSearchChange: (search: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   search: string;
@@ -61,13 +69,19 @@ const FILTER_ICON_MOTION = {
  */
 export function HomeChrome({
   authors,
+  canCurate,
   children,
+  curationToken,
   density,
   favoritesOnly,
   isCanvas,
   onAuthorToggle,
+  onClearCurationToken,
+  onCopyLink,
+  onCurationTokenChange,
   onDensityChange,
   onFavoritesOnlyChange,
+  onSaveCurationToken,
   onSearchChange,
   onViewModeChange,
   search,
@@ -77,6 +91,7 @@ export function HomeChrome({
 }: HomeChromeProps) {
   const compact = useScrollCompact(24);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [copyState, setCopyState] = useState<'copied' | 'idle'>('idle');
   const reducedMotion = useReducedMotion() ?? false;
   const activeFilterCount =
     (favoritesOnly ? 1 : 0) +
@@ -99,6 +114,20 @@ export function HomeChrome({
         transition: REDUCED_MOTION_FADE,
       }
     : FILTER_ICON_MOTION;
+
+  useEffect(() => {
+    if (copyState !== 'copied') {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setCopyState('idle'), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copyState]);
+
+  const handleCopyLink = () => {
+    onCopyLink();
+    setCopyState('copied');
+  };
 
   useEffect(() => {
     if (!filtersOpen) {
@@ -349,6 +378,59 @@ export function HomeChrome({
                           @{handle}
                         </Button>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-end gap-2 border-t border-border/60 pt-2">
+                    <Button
+                      aria-label="Copy link to this view"
+                      onClick={handleCopyLink}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {copyState === 'copied' ? (
+                        <Check className="size-4" />
+                      ) : (
+                        <Copy className="size-4" />
+                      )}
+                      Copy link
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 border-t border-border/60 pt-2">
+                    <Text as="p" tone="muted" variant="small">
+                      Curation token
+                    </Text>
+                    <Text as="p" tone="muted" variant="small">
+                      Stored locally in this browser. Same value as the
+                      extension sync token.
+                    </Text>
+                    <InputGroup>
+                      <Input
+                        aria-label="Sync token for curation"
+                        autoComplete="off"
+                        className="touch-input font-mono text-xs"
+                        onChange={(event) =>
+                          onCurationTokenChange(event.target.value)
+                        }
+                        placeholder="Paste sync token…"
+                        type="password"
+                        value={curationToken}
+                      />
+                    </InputGroup>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={onSaveCurationToken} size="sm">
+                        Save token
+                      </Button>
+                      {canCurate ? (
+                        <Button
+                          onClick={onClearCurationToken}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Clear
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 </div>

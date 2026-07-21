@@ -48,111 +48,123 @@ function collectFetchHeaders(
   return result;
 }
 
-function emitBookmarksRequest(
-  requestUrl: string,
-  headers: Record<string, string>,
-): void {
-  const parsed = parseBookmarksRequestUrl(requestUrl);
-  if (!parsed) {
+export function installPageInterceptor(bridgeSecret: string): void {
+  if (!bridgeSecret) {
     return;
   }
 
-  window.dispatchEvent(
-    new CustomEvent(BOOKMARKS_REQUEST_EVENT, {
-      detail: {
-        ...parsed,
-        headers,
-      },
-    }),
-  );
-}
-
-function emitBookmarksBody(body: unknown): void {
-  window.dispatchEvent(
-    new CustomEvent(BOOKMARKS_RESPONSE_EVENT, { detail: body }),
-  );
-}
-
-function patchFetch(): void {
-  const originalFetch = window.fetch.bind(window);
-
-  window.fetch = async (input, init) => {
-    const requestUrl = resolveRequestUrl(input);
-
-    if (isBookmarksApiUrl(requestUrl)) {
-      emitBookmarksRequest(requestUrl, collectFetchHeaders(input, init));
+  function emitBookmarksRequest(
+    requestUrl: string,
+    headers: Record<string, string>,
+  ): void {
+    const parsed = parseBookmarksRequestUrl(requestUrl);
+    if (!parsed) {
+      return;
     }
 
-    const response = await originalFetch(input, init);
+    window.dispatchEvent(
+      new CustomEvent(BOOKMARKS_REQUEST_EVENT, {
+        detail: {
+          bridgeSecret,
+          headers,
+          ...parsed,
+        },
+      }),
+    );
+  }
 
-    if (isBookmarksApiUrl(requestUrl)) {
-      void response
-        .clone()
-        .json()
-        .then((body) => {
-          emitBookmarksBody(body);
-        })
-        .catch(() => undefined);
-    }
+  function emitBookmarksBody(body: unknown): void {
+    window.dispatchEvent(
+      new CustomEvent(BOOKMARKS_RESPONSE_EVENT, {
+        detail: {
+          body,
+          bridgeSecret,
+        },
+      }),
+    );
+  }
 
-    return response;
-  };
-}
+  function patchFetch(): void {
+    const originalFetch = window.fetch.bind(window);
 
-function patchXhr(): void {
-  const OriginalXHR = window.XMLHttpRequest;
+    window.fetch = async (input, init) => {
+      const requestUrl = resolveRequestUrl(input);
 
-  window.XMLHttpRequest = function PatchedXMLHttpRequest(
-    this: XMLHttpRequest,
-  ) {
-    const xhr = new OriginalXHR();
-    let requestUrl = '';
-    const requestHeaders: Record<string, string> = {};
+      if (isBookmarksApiUrl(requestUrl)) {
+        emitBookmarksRequest(requestUrl, collectFetchHeaders(input, init));
+      }
 
-    const originalOpen = xhr.open.bind(xhr);
-    xhr.open = function open(
-      method: string,
-      url: string | URL,
-      async?: boolean,
-      username?: string | null,
-      password?: string | null,
-    ) {
-      requestUrl = typeof url === 'string' ? url : url.toString();
-      return originalOpen(method, url, async ?? true, username, password);
+      const response = await originalFetch(input, init);
+
+      if (isBookmarksApiUrl(requestUrl)) {
+        void response
+          .clone()
+          .json()
+          .then((body) => {
+            emitBookmarksBody(body);
+          })
+          .catch(() => undefined);
+      }
+
+      return response;
     };
+  }
 
-    const originalSetRequestHeader = xhr.setRequestHeader.bind(xhr);
-    xhr.setRequestHeader = function setRequestHeader(
-      name: string,
-      value: string,
+  function patchXhr(): void {
+    const OriginalXHR = window.XMLHttpRequest;
+
+    window.XMLHttpRequest = function PatchedXMLHttpRequest(
+      this: XMLHttpRequest,
     ) {
-      requestHeaders[name] = value;
-      return originalSetRequestHeader(name, value);
-    };
+      const xhr = new OriginalXHR();
+      let requestUrl = '';
+      const requestHeaders: Record<string, string> = {};
 
-    xhr.addEventListener('load', () => {
-      if (!isBookmarksApiUrl(requestUrl)) {
-        return;
-      }
+      const originalOpen = xhr.open.bind(xhr);
+      xhr.open = function open(
+        method: string,
+        url: string | URL,
+        async?: boolean,
+        username?: string | null,
+        password?: string | null,
+      ) {
+        requestUrl = typeof url === 'string' ? url : url.toString();
+        return originalOpen(method, url, async ?? true, username, password);
+      };
 
-      emitBookmarksRequest(requestUrl, requestHeaders);
+      const originalSetRequestHeader = xhr.setRequestHeader.bind(xhr);
+      xhr.setRequestHeader = function setRequestHeader(
+        name: string,
+        value: string,
+      ) {
+        requestHeaders[name] = value;
+        return originalSetRequestHeader(name, value);
+      };
 
-      if (xhr.responseType && xhr.responseType !== 'text') {
-        return;
-      }
+      xhr.addEventListener('load', () => {
+        if (!isBookmarksApiUrl(requestUrl)) {
+          return;
+        }
 
-      try {
-        emitBookmarksBody(JSON.parse(xhr.responseText));
-      } catch {
-        // Ignore malformed bookmark payloads.
-      }
-    });
+        emitBookmarksRequest(requestUrl, requestHeaders);
 
-    return xhr;
-  } as unknown as typeof XMLHttpRequest;
+        if (xhr.responseType && xhr.responseType !== 'text') {
+          return;
+        }
 
-  window.XMLHttpRequest.prototype = OriginalXHR.prototype;
+        try {
+          emitBookmarksBody(JSON.parse(xhr.responseText));
+        } catch {
+          // Ignore malformed bookmark payloads.
+        }
+      });
+
+      return xhr;
+    } as unknown as typeof XMLHttpRequest;
+
+    window.XMLHttpRequest.prototype = OriginalXHR.prototype;
+  }
+
+  patchFetch();
+  patchXhr();
 }
-
-patchFetch();
-patchXhr();

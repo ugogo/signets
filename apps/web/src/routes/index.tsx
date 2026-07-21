@@ -10,11 +10,16 @@ import { ShotCanvas } from '../components/shot-canvas';
 import { ShotFocus } from '../components/shot-focus';
 import { ShotGallery } from '../components/shot-gallery';
 import {
+  useDeleteShot,
+  useToggleShotFavorite,
+} from '../lib/curation-mutations';
+import {
   librarySearchParams,
   librarySearchSchema,
 } from '../lib/library-search-params';
 import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '../lib/motion';
 import { useInfiniteShots, useShotAuthors } from '../lib/queries';
+import { useCurationToken } from '../lib/use-curation-token';
 import { useDebouncedValue } from '../lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
@@ -26,6 +31,10 @@ function Home() {
   const [filters, setFilters] = useQueryStates(librarySearchParams);
   const { author, density, favorites, search, viewMode } = filters;
   const [focusedShot, setFocusedShot] = useState<null | Shot>(null);
+  const [tokenDraft, setTokenDraft] = useState('');
+  const { canCurate, clearToken, saveToken, token } = useCurationToken();
+  const toggleFavorite = useToggleShotFavorite();
+  const deleteShot = useDeleteShot();
 
   const debouncedSearch = useDebouncedValue(search ?? '');
 
@@ -77,6 +86,35 @@ function Home() {
     [author, setFilters],
   );
 
+  const handleToggleFavorite = useCallback(
+    (shot: Shot) => {
+      toggleFavorite.mutate(shot.id, {
+        onSuccess: (updatedShot) => {
+          setFocusedShot((current) =>
+            current?.id === updatedShot.id ? updatedShot : current,
+          );
+        },
+      });
+    },
+    [toggleFavorite],
+  );
+
+  const handleDeleteFocusedShot = useCallback(() => {
+    if (!focusedShot) {
+      return;
+    }
+
+    deleteShot.mutate(focusedShot.id, {
+      onSuccess: () => {
+        setFocusedShot(null);
+      },
+    });
+  }, [deleteShot, focusedShot]);
+
+  const handleCopyLink = useCallback(async () => {
+    await navigator.clipboard.writeText(window.location.href);
+  }, []);
+
   const gallery = (
     <AnimatePresence mode="wait">
       {isCanvas ? (
@@ -110,14 +148,19 @@ function Home() {
           transition={viewTransition}
         >
           <ShotGallery
+            canCurate={canCurate}
             density={density}
             error={error}
+            favoritePendingId={
+              toggleFavorite.isPending ? toggleFavorite.variables : null
+            }
             fetchNextPage={fetchNextPage}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
             onAuthorToggle={toggleAuthor}
             onFocusChange={setFocusedShot}
+            onToggleFavorite={handleToggleFavorite}
             selectedAuthor={author}
             shots={shots}
           />
@@ -129,15 +172,29 @@ function Home() {
   return (
     <HomeChrome
       authors={authors}
+      canCurate={canCurate}
+      curationToken={tokenDraft || token || ''}
       density={density}
       favoritesOnly={favorites}
       isCanvas={isCanvas}
       onAuthorToggle={toggleAuthor}
+      onClearCurationToken={() => {
+        clearToken();
+        setTokenDraft('');
+      }}
+      onCopyLink={() => {
+        void handleCopyLink();
+      }}
+      onCurationTokenChange={setTokenDraft}
       onDensityChange={(nextDensity) => {
         void setFilters({ density: nextDensity });
       }}
       onFavoritesOnlyChange={(nextFavoritesOnly) => {
         void setFilters({ favorites: nextFavoritesOnly });
+      }}
+      onSaveCurationToken={() => {
+        saveToken(tokenDraft || token || '');
+        setTokenDraft('');
       }}
       onSearchChange={(nextSearch) => {
         void setFilters({ search: nextSearch || null });
@@ -155,9 +212,17 @@ function Home() {
       <AnimatePresence>
         {focusedShot ? (
           <ShotFocus
+            canCurate={canCurate}
+            isDeleting={deleteShot.isPending}
+            isFavoritePending={
+              toggleFavorite.isPending &&
+              toggleFavorite.variables === focusedShot.id
+            }
             key={focusedShot.id}
             onAuthorToggle={toggleAuthor}
+            onDelete={handleDeleteFocusedShot}
             onDismiss={() => setFocusedShot(null)}
+            onToggleFavorite={() => handleToggleFavorite(focusedShot)}
             selectedAuthor={author}
             shot={focusedShot}
           />

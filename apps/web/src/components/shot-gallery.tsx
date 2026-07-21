@@ -17,15 +17,18 @@ import { StaggerEntrance, StaggerItem } from './stagger-entrance';
 const FALLBACK_ASPECT_RATIO = '4 / 5';
 
 interface GalleryProps {
+  canCurate?: boolean;
   density: number;
   emptyMessage?: string;
   error?: Error | null;
+  favoritePendingId?: string | null;
   fetchNextPage?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
   onAuthorToggle?: (authorHandle: string) => void;
   onFocusChange?: (shot: Shot) => void;
+  onToggleFavorite?: (shot: Shot) => void;
   selectedAuthor?: string | null;
   shots: Shot[];
 }
@@ -70,13 +73,19 @@ function EmptyLibrary({ message }: { message: string }) {
 }
 
 function ShotCard({
+  canCurate = false,
+  isFavoritePending = false,
   onAuthorToggle,
   onFocusChange,
+  onToggleFavorite,
   selectedAuthor,
   shot,
 }: {
+  canCurate?: boolean;
+  isFavoritePending?: boolean;
   onAuthorToggle?: (authorHandle: string) => void;
   onFocusChange?: (shot: Shot) => void;
+  onToggleFavorite?: (shot: Shot) => void;
   selectedAuthor?: string | null;
   shot: Shot;
 }) {
@@ -84,7 +93,7 @@ function ShotCard({
   const mediaLabel = shot.caption ?? `@${shot.authorHandle} design shot`;
 
   return (
-    <article className="group relative mb-3 break-inside-avoid">
+    <article className="group relative mb-3 break-inside-avoid [content-visibility:auto] [contain-intrinsic-size:320px]">
       <MediaCard className="press-scale relative block overflow-hidden rounded-xl transition-[box-shadow,transform] duration-200 ease-out hover:shadow-(--shadow-border-hover) hover-fine:-translate-y-0.5">
         <button
           aria-label={`Open ${mediaLabel}`}
@@ -114,9 +123,35 @@ function ShotCard({
           </div>
         </button>
 
-        {shot.isFavorite ? (
-          <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
-            <Star className="size-3.5 fill-primary text-primary" />
+        {shot.isFavorite || canCurate ? (
+          <span className="absolute right-2 top-2 flex items-center gap-1">
+            {canCurate ? (
+              <Button
+                aria-label={
+                  shot.isFavorite ? 'Remove favorite' : 'Mark as favorite'
+                }
+                aria-pressed={shot.isFavorite}
+                className="size-7 rounded-full bg-background/80 backdrop-blur-sm"
+                disabled={isFavoritePending}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleFavorite?.(shot);
+                }}
+                size="sm"
+                variant="ghost"
+              >
+                <Star
+                  className={cn(
+                    'size-3.5',
+                    shot.isFavorite && 'fill-primary text-primary',
+                  )}
+                />
+              </Button>
+            ) : shot.isFavorite ? (
+              <span className="flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
+                <Star className="size-3.5 fill-primary text-primary" />
+              </span>
+            ) : null}
           </span>
         ) : null}
 
@@ -153,15 +188,18 @@ function ShotCard({
 }
 
 export function ShotGallery({
+  canCurate = false,
   density,
   emptyMessage = 'No shots yet. Sync bookmarks from the companion extension.',
   error = null,
+  favoritePendingId = null,
   fetchNextPage,
   hasNextPage = false,
   isFetchingNextPage = false,
   isLoading = false,
   onAuthorToggle,
   onFocusChange,
+  onToggleFavorite,
   selectedAuthor = null,
   shots,
 }: GalleryProps) {
@@ -221,9 +259,12 @@ export function ShotGallery({
           >
             {shots.map((shot) => (
               <ShotCard
+                canCurate={canCurate}
+                isFavoritePending={favoritePendingId === shot.id}
                 key={shot.id}
                 onAuthorToggle={onAuthorToggle}
                 onFocusChange={onFocusChange}
+                onToggleFavorite={onToggleFavorite}
                 selectedAuthor={selectedAuthor}
                 shot={shot}
               />

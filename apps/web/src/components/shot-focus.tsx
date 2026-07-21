@@ -1,6 +1,6 @@
 import type { Shot } from '@signets/shared';
 
-import { ExternalLink, X } from 'lucide-react';
+import { ExternalLink, Star, Trash2, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
@@ -21,8 +21,13 @@ import { cn } from '../lib/utils';
 import { MotionShotBadge, MotionShotFocusMedia } from './motion-shot-media';
 
 interface ShotFocusProps {
+  canCurate?: boolean;
+  isDeleting?: boolean;
+  isFavoritePending?: boolean;
   onAuthorToggle?: (authorHandle: string) => void;
+  onDelete?: () => void;
   onDismiss: () => void;
+  onToggleFavorite?: () => void;
   selectedAuthor?: string | null;
   shot: Shot;
 }
@@ -36,8 +41,13 @@ const FOCUSABLE =
  * trapped inside and restored to the triggering element on close.
  */
 export function ShotFocus({
+  canCurate = false,
+  isDeleting = false,
+  isFavoritePending = false,
   onAuthorToggle,
+  onDelete,
   onDismiss,
+  onToggleFavorite,
   selectedAuthor = null,
   shot,
 }: ShotFocusProps) {
@@ -161,6 +171,36 @@ export function ShotFocus({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {canCurate ? (
+              <>
+                <Button
+                  aria-label={
+                    shot.isFavorite ? 'Remove favorite' : 'Mark as favorite'
+                  }
+                  aria-pressed={shot.isFavorite}
+                  disabled={isFavoritePending || isDeleting}
+                  onClick={onToggleFavorite}
+                  size="sm"
+                  variant={shot.isFavorite ? 'secondary' : 'outline'}
+                >
+                  <Star
+                    className={cn(
+                      'size-4',
+                      shot.isFavorite && 'fill-current text-red-500',
+                    )}
+                  />
+                </Button>
+                <Button
+                  aria-label="Delete shot"
+                  disabled={isDeleting || isFavoritePending}
+                  onClick={onDelete}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </>
+            ) : null}
             <Button asChild size="sm" variant="secondary">
               <a href={shotPostUrl(shot)} rel="noreferrer" target="_blank">
                 <ExternalLink className="size-4" />

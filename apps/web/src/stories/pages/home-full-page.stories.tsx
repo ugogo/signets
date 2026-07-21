@@ -71,12 +71,18 @@ function HomePagePreview() {
   return (
     <HomeChrome
       authors={mockAuthors}
+      canCurate={false}
+      curationToken=""
       density={density}
       favoritesOnly={favoritesOnly}
       isCanvas={isCanvas}
       onAuthorToggle={toggleAuthor}
+      onClearCurationToken={() => undefined}
+      onCopyLink={() => undefined}
+      onCurationTokenChange={() => undefined}
       onDensityChange={setDensity}
       onFavoritesOnlyChange={setFavoritesOnly}
+      onSaveCurationToken={() => undefined}
       onSearchChange={setSearch}
       onViewModeChange={setViewMode}
       search={search}

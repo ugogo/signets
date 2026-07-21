@@ -16,6 +16,7 @@ import {
   BOOKMARKS_RESPONSE_EVENT,
 } from './constants.js';
 import { isExtensionMessage } from './messages.js';
+import { BRIDGE_SECRET } from './page-interceptor-bootstrap.js';
 import {
   removeSyncOverlay,
   showSyncOverlay,
@@ -35,6 +36,38 @@ let activeLastBookmarkSyncAt: null | string = null;
 let lastBottomCursor: string | undefined;
 let capturedRequestParams: BookmarksRequestParams | undefined;
 let reachedLastBookmarkSync = false;
+
+function isTrustedBridgeSecret(value: unknown): value is string {
+  return typeof value === 'string' && value === BRIDGE_SECRET;
+}
+
+function readTrustedRequestParams(
+  detail: unknown,
+): BookmarksRequestParams | undefined {
+  if (!detail || typeof detail !== 'object' || !('bridgeSecret' in detail)) {
+    return undefined;
+  }
+
+  const record = detail as BookmarksRequestParams & { bridgeSecret?: string };
+  if (!isTrustedBridgeSecret(record.bridgeSecret)) {
+    return undefined;
+  }
+
+  return record;
+}
+
+function readTrustedBookmarksBody(detail: unknown): unknown | undefined {
+  if (!detail || typeof detail !== 'object' || !('bridgeSecret' in detail)) {
+    return undefined;
+  }
+
+  const record = detail as { body?: unknown; bridgeSecret?: string };
+  if (!isTrustedBridgeSecret(record.bridgeSecret)) {
+    return undefined;
+  }
+
+  return record.body;
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -138,7 +171,11 @@ function flushPendingBookmarkBodies(): void {
 }
 
 window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
-  const body = (event as CustomEvent).detail;
+  const body = readTrustedBookmarksBody((event as CustomEvent).detail);
+  if (body === undefined) {
+    return;
+  }
+
   if (!captureReady) {
     pendingBookmarkBodies.push(body);
     return;
@@ -148,7 +185,10 @@ window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
 });
 
 window.addEventListener(BOOKMARKS_REQUEST_EVENT, (event) => {
-  capturedRequestParams = (event as CustomEvent<BookmarksRequestParams>).detail;
+  const params = readTrustedRequestParams((event as CustomEvent).detail);
+  if (params) {
+    capturedRequestParams = params;
+  }
 });
 
 function waitForRequestParams(timeoutMs: number): Promise<BookmarksRequestParams> {
@@ -166,9 +206,16 @@ function waitForRequestParams(timeoutMs: number): Promise<BookmarksRequestParams
     }, timeoutMs);
 
     const listener = (event: Event) => {
+      const params = readTrustedRequestParams(
+        (event as CustomEvent).detail,
+      );
+      if (!params) {
+        return;
+      }
+
       window.clearTimeout(timeout);
       window.removeEventListener(BOOKMARKS_REQUEST_EVENT, listener);
-      resolve((event as CustomEvent<BookmarksRequestParams>).detail);
+      resolve(params);
     };
 
     window.addEventListener(BOOKMARKS_REQUEST_EVENT, listener);

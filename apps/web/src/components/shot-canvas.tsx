@@ -1,4 +1,5 @@
 import type { Shot } from '@signets/shared';
+import { CANVAS_PREFETCH_MAX_SHOTS } from '@signets/shared';
 
 import { Maximize2, Minus, Plus } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -90,6 +91,9 @@ export function ShotCanvas({
   }, [resetKey]);
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) {
+      return;
+    }
+    if (shots.length >= CANVAS_PREFETCH_MAX_SHOTS) {
       return;
     }
     if (shots.length === lastFetchedCountRef.current) {
