@@ -89,20 +89,15 @@ export class ShotsService {
       return null;
     }
 
-    const existing = await this.prisma.shot.findFirst({
-      where: { id, userId: user.id },
-    });
+    const rows = await this.prisma.$queryRaw<PrismaShot[]>`
+      UPDATE "Shot"
+      SET "isFavorite" = NOT "isFavorite", "updatedAt" = NOW()
+      WHERE "id" = ${id}::uuid AND "userId" = ${user.id}::uuid
+      RETURNING *
+    `;
 
-    if (!existing) {
-      return null;
-    }
-
-    const updated = await this.prisma.shot.update({
-      data: { isFavorite: !existing.isFavorite },
-      where: { id },
-    });
-
-    return toShotDto(updated);
+    const updated = rows[0];
+    return updated ? toShotDto(updated) : null;
   }
 
   async remove(id: string): Promise<boolean> {

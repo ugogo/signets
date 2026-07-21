@@ -109,7 +109,7 @@ For production, add your API origin to `host_permissions` in `apps/extension/pub
 
 ### 4. Capture bookmarks on X
 
-The extension passively intercepts X’s bookmark GraphQL responses while you browse. It only captures **photo** media — text-only bookmarks produce no shots. A tweet with several images becomes several shots.
+The extension passively intercepts X’s bookmark GraphQL responses while you browse. It captures **photo, video, and animated GIF** media — text-only bookmarks produce no shots. A tweet with several media assets becomes several shots.
 
 1. Log into [x.com](https://x.com) in Chrome (same profile as the extension).
 2. Open your bookmarks: `https://x.com/i/bookmarks`
@@ -141,12 +141,12 @@ The home page is a masonry grid of all synced shots, ordered by bookmark date (n
 | Control | What it does |
 | ------- | ------------ |
 | **Search** | Filter by caption, author handle, or author name |
-| **Author** | Dropdown to show shots from one `@handle` |
+| **Author** | Filter to one `@handle` |
 | **Favorites only** | Show only shots marked as favorites |
 | **Density slider** | Adjust column width and thumbnail size |
 | **Shot count** | Number of shots matching current filters |
 
-Click any shot to open the original post on X in a new tab. Images are hotlinked from X (no local copies).
+Click any shot to open the **focus overlay** — full-size photo, or motion playback for video/GIF shots (via the API proxy). Use **View on X** in the overlay to open the original post.
 
 If the library is empty, you will see: *“No shots yet. Sync bookmarks from the companion extension.”*
 

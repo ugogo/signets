@@ -71,12 +71,14 @@ function renderLogs(logs: LogEntry[]): void {
     return;
   }
 
-  logElement.innerHTML = logs
-    .map((entry) => {
-      const time = formatLogTime(entry.timestamp);
-      return `<span class="log-${entry.level}">[${time}] ${entry.message}</span>`;
-    })
-    .join('\n');
+  logElement.replaceChildren();
+  for (const entry of logs) {
+    const line = document.createElement('span');
+    line.className = `log-${entry.level}`;
+    line.textContent = `[${formatLogTime(entry.timestamp)}] ${entry.message}`;
+    logElement.appendChild(line);
+    logElement.appendChild(document.createTextNode('\n'));
+  }
   logElement.scrollTop = logElement.scrollHeight;
 }
 

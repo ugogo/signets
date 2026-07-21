@@ -20,7 +20,7 @@
     "start:prod": "prisma migrate deploy && node dist/main.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -63,6 +63,10 @@
       "json",
       "ts"
     ],
+    "moduleNameMapper": {
+      "^@signets/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {

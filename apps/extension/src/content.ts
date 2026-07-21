@@ -26,6 +26,7 @@ const capturedShots: SyncShotInput[] = [];
 const pendingBookmarkBodies: unknown[] = [];
 const PAGE_FETCH_DELAY_MS = 600;
 const REQUEST_PARAMS_TIMEOUT_MS = 20_000;
+const MAX_429_RETRIES = 5;
 
 let captureAborted = false;
 let captureReady = false;
@@ -116,8 +117,10 @@ function ingestBookmarksBody(body: unknown): {
       newShots: newShots.length,
       parsed: parsedShots.length,
     };
-  } catch {
-    return { entries: 0, newShots: 0, parsed: 0 };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to parse bookmarks body';
+    throw new Error(message);
   }
 }
 
@@ -175,6 +178,7 @@ function waitForRequestParams(timeoutMs: number): Promise<BookmarksRequestParams
 async function fetchBookmarksPage(
   params: BookmarksRequestParams,
   cursor: string,
+  rateLimitRetries = 0,
 ): Promise<unknown> {
   const response = await fetch(buildBookmarksRequestUrl(params, cursor), {
     credentials: 'include',
@@ -182,13 +186,17 @@ async function fetchBookmarksPage(
   });
 
   if (response.status === 429) {
+    if (rateLimitRetries >= MAX_429_RETRIES) {
+      throw new Error('Bookmarks API rate limited too many times.');
+    }
+
     const retryAfter = Number(response.headers.get('retry-after'));
     const waitMs =
       Number.isFinite(retryAfter) && retryAfter > 0
         ? retryAfter * 1000
         : 15_000;
     await sleep(waitMs);
-    return fetchBookmarksPage(params, cursor);
+    return fetchBookmarksPage(params, cursor, rateLimitRetries + 1);
   }
 
   if (!response.ok) {
@@ -260,8 +268,10 @@ async function captureAllBookmarks(
         ) {
           break;
         }
-      } catch {
-        break;
+      } catch (error) {
+        throw error instanceof Error
+          ? error
+          : new Error('Failed to fetch bookmarks page.');
       }
 
       cursor = lastBottomCursor;

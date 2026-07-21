@@ -2,7 +2,7 @@
 
 Signets is a hosted, image-heavy app, built TypeScript front and back but split into two deployables:
 
-- **Frontend:** TanStack Start (SSR/SPA) on **Cloudflare Pages**. Its server-function backend is intentionally unused for data — it is a client of the API.
+- **Frontend:** TanStack Start (SSR/SPA) on **Cloudflare Workers**. Its server-function backend is intentionally unused for data — it is a client of the API.
 - **API:** **NestJS** on **Render** (a Node host).
 - **Database:** **Neon Postgres** (serverless), accessed via **Prisma**.
 - **Images:** hotlinked in the MVP; **R2** reserved for later hosting (reachable from Node via the S3 API).

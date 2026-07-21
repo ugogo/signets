@@ -26,8 +26,19 @@ export class SyncService {
   async upsertShots(payload: SyncPayload): Promise<SyncResult> {
     const user = await this.ensureUser();
 
-    await this.prisma.$transaction(
-      payload.shots.map((shot) =>
+    const newestBookmarkedAt = payload.shots.reduce((latest, shot) => {
+      const at = new Date(shot.bookmarkedAt);
+      return at > latest ? at : latest;
+    }, new Date(0));
+
+    const previousLastBookmarkSyncAt = user.lastBookmarkSyncAt ?? new Date(0);
+    const lastBookmarkSyncAt =
+      newestBookmarkedAt > previousLastBookmarkSyncAt
+        ? newestBookmarkedAt
+        : previousLastBookmarkSyncAt;
+
+    await this.prisma.$transaction([
+      ...payload.shots.map((shot) =>
         this.prisma.shot.upsert({
           create: {
             authorHandle: shot.authorHandle,
@@ -63,23 +74,11 @@ export class SyncService {
           },
         }),
       ),
-    );
-
-    const newestBookmarkedAt = payload.shots.reduce((latest, shot) => {
-      const at = new Date(shot.bookmarkedAt);
-      return at > latest ? at : latest;
-    }, new Date(0));
-
-    const previousLastBookmarkSyncAt = user.lastBookmarkSyncAt ?? new Date(0);
-    const lastBookmarkSyncAt =
-      newestBookmarkedAt > previousLastBookmarkSyncAt
-        ? newestBookmarkedAt
-        : previousLastBookmarkSyncAt;
-
-    await this.prisma.user.update({
-      data: { lastBookmarkSyncAt },
-      where: { id: user.id },
-    });
+      this.prisma.user.update({
+        data: { lastBookmarkSyncAt },
+        where: { id: user.id },
+      }),
+    ]);
 
     return {
       lastBookmarkSyncAt: lastBookmarkSyncAt.toISOString(),

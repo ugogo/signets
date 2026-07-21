@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
+    "test": "vitest run",
     "build": "esbuild src/page-interceptor.ts --bundle --format=iife --outfile=public/page-interceptor.js && esbuild src/content.ts --bundle --format=iife --outfile=public/content.js && esbuild src/background.ts --bundle --format=esm --outfile=public/background.js && esbuild src/popup.ts --bundle --format=iife --outfile=public/popup.js"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
   "devDependencies": {
     "@types/chrome": "^0.0.313",
     "esbuild": "^0.25.5",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.0.9"
   }
 }

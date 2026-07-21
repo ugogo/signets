@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { shotKindSchema } from './shot-kind.js';
+import { isAllowedTwimgUrl } from './twimg-url.js';
 
 export const syncShotInputSchema = z
   .object({
@@ -21,6 +22,25 @@ export const syncShotInputSchema = z
       ctx.addIssue({
         code: 'custom',
         message: 'mediaPosterUrl is required for video and animated GIF shots',
+        path: ['mediaPosterUrl'],
+      });
+    }
+
+    if (!isAllowedTwimgUrl(shot.mediaUrl)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'mediaUrl must be an X twimg HTTPS URL',
+        path: ['mediaUrl'],
+      });
+    }
+
+    if (
+      shot.mediaPosterUrl &&
+      !isAllowedTwimgUrl(shot.mediaPosterUrl)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'mediaPosterUrl must be an X twimg HTTPS URL',
         path: ['mediaPosterUrl'],
       });
     }

@@ -4,19 +4,18 @@ import request from 'supertest';
 
 import { AppModule } from '../src/app.module.js';
 
-describe('Sync and shots (e2e)', () => {
+const hasE2eEnv =
+  Boolean(process.env.DATABASE_URL) &&
+  Boolean(process.env.DIRECT_URL) &&
+  Boolean(process.env.SYNC_TOKEN) &&
+  Boolean(process.env.WEB_ORIGIN);
+
+const describeE2e = hasE2eEnv ? describe : describe.skip;
+
+describeE2e('Sync and shots (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    if (
-      !process.env.DATABASE_URL ||
-      !process.env.DIRECT_URL ||
-      !process.env.SYNC_TOKEN ||
-      !process.env.WEB_ORIGIN
-    ) {
-      return;
-    }
-
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -30,10 +29,6 @@ describe('Sync and shots (e2e)', () => {
   });
 
   it('rejects sync without token', async () => {
-    if (!app) {
-      return;
-    }
-
     await request(app.getHttpServer())
       .post('/sync')
       .send({ shots: [] })
@@ -41,10 +36,6 @@ describe('Sync and shots (e2e)', () => {
   });
 
   it('lists shots publicly', async () => {
-    if (!app) {
-      return;
-    }
-
     const response = await request(app.getHttpServer()).get('/shots').expect(200);
 
     expect(response.body).toEqual(
@@ -57,10 +48,6 @@ describe('Sync and shots (e2e)', () => {
   });
 
   it('rejects an invalid shots cursor', async () => {
-    if (!app) {
-      return;
-    }
-
     const response = await request(app.getHttpServer())
       .get('/shots')
       .query({ cursor: 'not-a-cursor' })
@@ -76,10 +63,6 @@ describe('Sync and shots (e2e)', () => {
   });
 
   it('rejects an invalid shots limit', async () => {
-    if (!app) {
-      return;
-    }
-
     await request(app.getHttpServer())
       .get('/shots')
       .query({ limit: '999' })
@@ -87,10 +70,6 @@ describe('Sync and shots (e2e)', () => {
   });
 
   it('lists shot authors publicly', async () => {
-    if (!app) {
-      return;
-    }
-
     const response = await request(app.getHttpServer())
       .get('/shots/authors')
       .expect(200);

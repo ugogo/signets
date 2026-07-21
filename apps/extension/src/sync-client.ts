@@ -149,7 +149,14 @@ export async function verifySyncCredentials(settings: Settings): Promise<void> {
   );
 
   if (response.status === 404) {
-    return;
+    throw new SyncRequestError(
+      formatSyncFailure(
+        404,
+        settings.apiUrl,
+        'Sync verification endpoint not found. Check the API URL.',
+      ),
+      404,
+    );
   }
 
   if (!response.ok) {

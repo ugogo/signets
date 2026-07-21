@@ -59,4 +59,21 @@ describe('syncPayloadSchema', () => {
     const result = syncPayloadSchema.safeParse({ shots: [] });
     expect(result.success).toBe(false);
   });
+
+  it('rejects non-twimg media URLs', () => {
+    const result = syncPayloadSchema.safeParse({
+      shots: [
+        {
+          authorHandle: 'designer',
+          bookmarkedAt: '2026-01-15T12:00:00.000Z',
+          kind: 'photo',
+          mediaId: '1234567890',
+          mediaUrl: 'https://example.com/evil.jpg',
+          postId: '123',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
