@@ -1,15 +1,18 @@
 import type { Shot } from '@signets/shared';
 
 import { BookmarkPlus, Star } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import { useCallback, useMemo } from 'react';
 
+import { OPACITY_CROSSFADE } from '../lib/motion';
 import { useInfiniteScrollSentinel } from '../lib/use-infinite-scroll-sentinel';
 import { shotPosterSource } from '../lib/shot-media';
 import { cn } from '../lib/utils';
 import { MediaCard, SurfaceCard } from './media-card';
 import { MotionShotOverlay } from './motion-shot-media';
+import { StaggerEntrance, StaggerItem } from './stagger-entrance';
 
 const FALLBACK_ASPECT_RATIO = '4 / 5';
 
@@ -48,14 +51,20 @@ function GallerySkeleton() {
 
 function EmptyLibrary({ message }: { message: string }) {
   return (
-    <SurfaceCard className="flex flex-col items-center justify-center gap-4 px-8 py-16 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted/40 shadow-(--shadow-border)">
-        <BookmarkPlus className="size-5 text-muted-foreground" />
-      </div>
-      <div className="flex max-w-sm flex-col gap-1">
-        <Text weight="bold">Nothing here yet</Text>
-        <Text tone="muted">{message}</Text>
-      </div>
+    <SurfaceCard className="flex flex-col items-center justify-center px-8 py-16 text-center">
+      <StaggerEntrance className="flex flex-col items-center gap-4">
+        <StaggerItem>
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted/40 shadow-(--shadow-border)">
+            <BookmarkPlus className="size-5 text-muted-foreground" />
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="flex max-w-sm flex-col gap-1">
+            <Text weight="bold">Nothing here yet</Text>
+            <Text tone="muted">{message}</Text>
+          </div>
+        </StaggerItem>
+      </StaggerEntrance>
     </SurfaceCard>
   );
 }
@@ -173,47 +182,64 @@ export function ShotGallery({
     loadMore,
   );
 
-  if (isLoading && shots.length === 0) {
-    return <GallerySkeleton />;
-  }
-
-  if (error) {
-    return (
-      <Text className="text-destructive">
-        Could not reach the API. Start the NestJS server on port 3001.
-      </Text>
-    );
-  }
-
-  if (shots.length === 0) {
-    return <EmptyLibrary message={emptyMessage} />;
-  }
+  const viewKey =
+    isLoading && shots.length === 0
+      ? 'loading'
+      : error
+        ? 'error'
+        : shots.length === 0
+          ? 'empty'
+          : 'content';
 
   return (
-    <>
-      <div
-        className="gap-3"
-        style={{
-          columnCount: 'auto',
-          columnWidth: `${columnWidth}px`,
-        }}
-      >
-        {shots.map((shot) => (
-          <ShotCard
-            key={shot.id}
-            onAuthorToggle={onAuthorToggle}
-            onFocusChange={onFocusChange}
-            selectedAuthor={selectedAuthor}
-            shot={shot}
-          />
-        ))}
-      </div>
-      <div aria-hidden className="h-px w-full" ref={sentinelRef} />
-      {isFetchingNextPage ? (
-        <Text className="mt-6 text-center font-mono text-xs tabular-nums" tone="muted">
-          Loading more…
-        </Text>
+    <AnimatePresence mode="wait">
+      {viewKey === 'loading' ? (
+        <motion.div key="loading" {...OPACITY_CROSSFADE}>
+          <GallerySkeleton />
+        </motion.div>
       ) : null}
-    </>
+      {viewKey === 'error' ? (
+        <motion.div key="error" {...OPACITY_CROSSFADE}>
+          <Text className="text-destructive">
+            Could not reach the API. Start the NestJS server on port 3001.
+          </Text>
+        </motion.div>
+      ) : null}
+      {viewKey === 'empty' ? (
+        <motion.div key="empty" {...OPACITY_CROSSFADE}>
+          <EmptyLibrary message={emptyMessage} />
+        </motion.div>
+      ) : null}
+      {viewKey === 'content' ? (
+        <motion.div key="content" {...OPACITY_CROSSFADE}>
+          <div
+            className="gap-3"
+            style={{
+              columnCount: 'auto',
+              columnWidth: `${columnWidth}px`,
+            }}
+          >
+            {shots.map((shot) => (
+              <ShotCard
+                key={shot.id}
+                onAuthorToggle={onAuthorToggle}
+                onFocusChange={onFocusChange}
+                selectedAuthor={selectedAuthor}
+                shot={shot}
+              />
+            ))}
+          </div>
+          <div aria-hidden className="h-px w-full" ref={sentinelRef} />
+          {isFetchingNextPage ? (
+            <Text
+              className="mt-6 text-center font-mono text-xs tabular-nums"
+              tone="muted"
+            >
+              Loading more…
+            </Text>
+          ) : null}
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

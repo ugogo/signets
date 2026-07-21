@@ -31,3 +31,16 @@ export const PAGE_ITEM_VARIANTS = {
 export const PAGE_STAGGER = {
   visible: { transition: { staggerChildren: 0.1 } },
 } as const;
+
+/** Rare empty / 404 entrances — tighter stagger than page load. */
+export const EMPTY_STATE_STAGGER = {
+  visible: { transition: { staggerChildren: 0.06 } },
+} as const;
+
+/** Loading ↔ content crossfade (no stagger — interaction-ready immediately). */
+export const OPACITY_CROSSFADE = {
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  initial: { opacity: 0 },
+  transition: REDUCED_MOTION_FADE,
+} as const;

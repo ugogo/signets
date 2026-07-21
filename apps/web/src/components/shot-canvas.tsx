@@ -1,7 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { Maximize2, Minus, Plus } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import {
@@ -16,11 +16,13 @@ import {
 
 import { shotPosterSource } from '../lib/shot-media';
 import { computeMasonryLayout, FALLBACK_ASPECT } from '../lib/canvas-grid';
+import { OPACITY_CROSSFADE } from '../lib/motion';
 import { useElementSize } from '../lib/use-element-size';
 import { useCanvasViewport } from '../lib/use-pan-zoom';
 import { tileInRect, useVisibleRect } from '../lib/use-visible-rect';
 import { MediaCard } from './media-card';
 import { MotionShotOverlay } from './motion-shot-media';
+import { StaggerEntrance, StaggerItem } from './stagger-entrance';
 
 const COLUMN_WIDTH = 260;
 const GAP = 16;
@@ -251,169 +253,194 @@ export function ShotCanvas({
     [fitToView, panBy, zoomBy],
   );
 
-  if (error) {
-    return (
-      <Text className="text-destructive">
-        Could not reach the API. Start the NestJS server on port 3001.
-      </Text>
-    );
-  }
-
-  if (isLoading && shots.length === 0 && total === 0) {
-    return (
-      <div className="flex h-full min-h-48 items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/20">
-        <Text className="font-mono text-xs" tone="muted">
-          Loading library…
-        </Text>
-      </div>
-    );
-  }
-
-  if (count === 0) {
-    return (
-      <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-card/20 px-6 text-center">
-        <Text weight="bold">Nothing here yet</Text>
-        <Text tone="muted">{emptyMessage}</Text>
-      </div>
-    );
-  }
+  const viewKey = error
+    ? 'error'
+    : isLoading && shots.length === 0 && total === 0
+      ? 'loading'
+      : count === 0
+        ? 'empty'
+        : 'canvas';
 
   const loaded = shots.length;
   const isFilling = loaded < count;
   const thumbnailSize = highRes ? 'medium' : 'small';
 
   return (
-    <div
-      aria-label="Shot canvas. Arrow keys pan, plus and minus zoom, 0 fits."
-      className="relative h-full w-full overflow-hidden rounded-xl bg-muted/10 shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      onKeyDown={onKeyDown}
-      ref={surfaceRef}
-      role="application"
-      tabIndex={0}
-    >
-      <motion.div
-        className="absolute left-0 top-0 touch-none select-none"
-        drag
-        dragConstraints={dragConstraints}
-        dragElastic={0.06}
-        dragMomentum={!reducedMotion}
-        dragTransition={DRAG_TRANSITION}
-        // Hide the plane from AT/tab order while the focus overlay owns the view.
-        inert={focusedShot !== null || undefined}
-        // Clear on every fresh press; set true only once a drag actually starts,
-        // so a post-drag click is suppressed without racing a timer.
-        onDragStart={() => {
-          draggingRef.current = true;
-        }}
-        onPointerDownCapture={() => {
-          draggingRef.current = false;
-        }}
-        style={{
-          cursor: 'grab',
-          height: layout.content.height,
-          scale,
-          transformOrigin: '0 0',
-          width: layout.content.width,
-          x,
-          y,
-        }}
-        whileDrag={{ cursor: 'grabbing' }}
-      >
-        {layout.tiles.map((tile, index) => {
-          if (viewRect && !tileInRect(tile, viewRect)) {
-            return null;
-          }
-
-          const shot = shots[index];
-
-          if (!shot) {
-            return (
-              <div
-                className="absolute rounded-md border border-dashed border-border/60 bg-muted/20"
-                key={`ghost-${index}`}
-                style={{
-                  height: tile.height,
-                  left: tile.left,
-                  top: tile.top,
-                  width: tile.width,
-                }}
-              />
-            );
-          }
-
-          return (
-            <MediaCard
-              as="button"
-              className="press-scale animate-in fade-in absolute rounded-md transition-[box-shadow,transform] hover:z-10 hover:shadow-(--shadow-border-hover) hover:ring-2 hover:ring-primary"
-              key={shot.id}
-              onClick={() => {
-                if (!draggingRef.current) {
-                  onFocusChange(shot);
-                }
+    <AnimatePresence mode="wait">
+      {viewKey === 'error' ? (
+        <motion.div key="error" {...OPACITY_CROSSFADE}>
+          <Text className="text-destructive">
+            Could not reach the API. Start the NestJS server on port 3001.
+          </Text>
+        </motion.div>
+      ) : null}
+      {viewKey === 'loading' ? (
+        <motion.div
+          className="flex h-full min-h-48 items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/20"
+          key="loading"
+          {...OPACITY_CROSSFADE}
+        >
+          <Text className="font-mono text-xs" tone="muted">
+            Loading library…
+          </Text>
+        </motion.div>
+      ) : null}
+      {viewKey === 'empty' ? (
+        <motion.div
+          className="flex h-full min-h-48 items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/20 px-6 text-center"
+          key="empty"
+          {...OPACITY_CROSSFADE}
+        >
+          <StaggerEntrance className="flex flex-col items-center gap-3">
+            <StaggerItem>
+              <Text weight="bold">Nothing here yet</Text>
+            </StaggerItem>
+            <StaggerItem>
+              <Text tone="muted">{emptyMessage}</Text>
+            </StaggerItem>
+          </StaggerEntrance>
+        </motion.div>
+      ) : null}
+      {viewKey === 'canvas' ? (
+        <motion.div
+          className="relative h-full w-full"
+          key="canvas"
+          {...OPACITY_CROSSFADE}
+        >
+          <div
+            aria-label="Shot canvas. Arrow keys pan, plus and minus zoom, 0 fits."
+            className="relative h-full w-full overflow-hidden rounded-xl bg-muted/10 shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            onKeyDown={onKeyDown}
+            ref={surfaceRef}
+            role="application"
+            tabIndex={0}
+          >
+            <motion.div
+              className="absolute left-0 top-0 touch-none select-none"
+              drag
+              dragConstraints={dragConstraints}
+              dragElastic={0.06}
+              dragMomentum={!reducedMotion}
+              dragTransition={DRAG_TRANSITION}
+              // Hide the plane from AT/tab order while the focus overlay owns the view.
+              inert={focusedShot !== null || undefined}
+              // Clear on every fresh press; set true only once a drag actually starts,
+              // so a post-drag click is suppressed without racing a timer.
+              onDragStart={() => {
+                draggingRef.current = true;
+              }}
+              onPointerDownCapture={() => {
+                draggingRef.current = false;
               }}
               style={{
-                height: tile.height,
-                left: tile.left,
-                top: tile.top,
-                width: tile.width,
+                cursor: 'grab',
+                height: layout.content.height,
+                scale,
+                transformOrigin: '0 0',
+                width: layout.content.width,
+                x,
+                y,
               }}
-              type="button"
+              whileDrag={{ cursor: 'grabbing' }}
             >
-              <img
-                alt={shot.caption ?? `@${shot.authorHandle} design shot`}
-                className="h-full w-full object-cover"
-                decoding="async"
-                draggable={false}
-                loading="lazy"
-                src={shotPosterSource(shot, thumbnailSize)}
-              />
-              <MotionShotOverlay shot={shot} />
-            </MediaCard>
-          );
-        })}
-      </motion.div>
+              {layout.tiles.map((tile, index) => {
+                if (viewRect && !tileInRect(tile, viewRect)) {
+                  return null;
+                }
 
-      <div className="floating-chrome absolute right-3 top-3 flex flex-col gap-1.5 rounded-lg p-1 shadow-[var(--shadow-border)]">
-        <Button
-          aria-label="Zoom in"
-          disabled={!isReady}
-          onClick={() => zoomBy(ZOOM_STEP)}
-          size="sm"
-          variant="outline"
-        >
-          <Plus className="size-4" />
-        </Button>
-        <Button
-          aria-label="Zoom out"
-          disabled={!isReady}
-          onClick={() => zoomBy(1 / ZOOM_STEP)}
-          size="sm"
-          variant="outline"
-        >
-          <Minus className="size-4" />
-        </Button>
-        <Button
-          aria-label="Fit all"
-          disabled={!isReady}
-          onClick={fitToView}
-          size="sm"
-          variant="outline"
-        >
-          <Maximize2 className="size-4" />
-        </Button>
-      </div>
+                const shot = shots[index];
 
-      {isFilling ? (
-        <div
-          aria-live="polite"
-          className="floating-chrome absolute bottom-3 left-3 rounded-full px-3 py-1 shadow-[var(--shadow-border)] tabular-nums"
-          role="status"
-        >
-          <Text tone="muted" variant="small">
-            Loading {loaded.toLocaleString()} of {count.toLocaleString()}…
-          </Text>
-        </div>
+                if (!shot) {
+                  return (
+                    <div
+                      className="absolute rounded-md border border-dashed border-border/60 bg-muted/20"
+                      key={`ghost-${index}`}
+                      style={{
+                        height: tile.height,
+                        left: tile.left,
+                        top: tile.top,
+                        width: tile.width,
+                      }}
+                    />
+                  );
+                }
+
+                return (
+                  <MediaCard
+                    as="button"
+                    className="press-scale animate-in fade-in absolute rounded-md transition-[box-shadow,transform] hover:z-10 hover:shadow-(--shadow-border-hover) hover:ring-2 hover:ring-primary"
+                    key={shot.id}
+                    onClick={() => {
+                      if (!draggingRef.current) {
+                        onFocusChange(shot);
+                      }
+                    }}
+                    style={{
+                      height: tile.height,
+                      left: tile.left,
+                      top: tile.top,
+                      width: tile.width,
+                    }}
+                    type="button"
+                  >
+                    <img
+                      alt={shot.caption ?? `@${shot.authorHandle} design shot`}
+                      className="h-full w-full object-cover"
+                      decoding="async"
+                      draggable={false}
+                      loading="lazy"
+                      src={shotPosterSource(shot, thumbnailSize)}
+                    />
+                    <MotionShotOverlay shot={shot} />
+                  </MediaCard>
+                );
+              })}
+            </motion.div>
+
+            <div className="floating-chrome absolute right-3 top-3 flex flex-col gap-1.5 rounded-lg p-1 shadow-[var(--shadow-border)]">
+              <Button
+                aria-label="Zoom in"
+                disabled={!isReady}
+                onClick={() => zoomBy(ZOOM_STEP)}
+                size="sm"
+                variant="outline"
+              >
+                <Plus className="size-4" />
+              </Button>
+              <Button
+                aria-label="Zoom out"
+                disabled={!isReady}
+                onClick={() => zoomBy(1 / ZOOM_STEP)}
+                size="sm"
+                variant="outline"
+              >
+                <Minus className="size-4" />
+              </Button>
+              <Button
+                aria-label="Fit all"
+                disabled={!isReady}
+                onClick={fitToView}
+                size="sm"
+                variant="outline"
+              >
+                <Maximize2 className="size-4" />
+              </Button>
+            </div>
+
+            {isFilling ? (
+              <div
+                aria-live="polite"
+                className="floating-chrome absolute bottom-3 left-3 rounded-full px-3 py-1 shadow-[var(--shadow-border)] tabular-nums"
+                role="status"
+              >
+                <Text tone="muted" variant="small">
+                  Loading {loaded.toLocaleString()} of {count.toLocaleString()}…
+                </Text>
+              </div>
+            ) : null}
+          </div>
+        </motion.div>
       ) : null}
-    </div>
+    </AnimatePresence>
   );
 }

@@ -25,7 +25,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     <Button
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       className={cn(
-        'press-scale relative size-8 shrink-0 after:absolute after:top-1/2 after:left-1/2 after:size-9 after:-translate-x-1/2 after:-translate-y-1/2',
+        'relative size-8 shrink-0 after:absolute after:top-1/2 after:left-1/2 after:size-9 after:-translate-x-1/2 after:-translate-y-1/2',
         className,
       )}
       onClick={toggleTheme}

@@ -44,7 +44,7 @@ export interface HomeChromeProps {
 const segmentTrackClass =
   'inline-flex h-8 shrink-0 items-center gap-0.5 rounded-xl bg-muted/50 p-0.5';
 
-const segmentButtonClass = 'press-scale h-7 rounded-lg px-2.5';
+const segmentButtonClass = 'h-7 rounded-lg px-2.5';
 
 const FILTER_ICON_MOTION = {
   animate: { filter: 'blur(0px)', opacity: 1, scale: 1 },
@@ -160,7 +160,7 @@ export function HomeChrome({
             <Button
               aria-expanded={filtersOpen}
               aria-label={filtersOpen ? 'Close filters' : 'Open filters'}
-              className="press-scale relative size-8 shrink-0 rounded-xl"
+              className="relative size-8 shrink-0 rounded-xl"
               onClick={() => setFiltersOpen((open) => !open)}
               size="sm"
               variant={
@@ -266,7 +266,7 @@ export function HomeChrome({
                         aria-label="Favorites only"
                         aria-pressed={favoritesOnly}
                         className={cn(
-                          'press-scale size-8 rounded-xl',
+                          'size-8 rounded-xl',
                           favoritesOnly && 'shadow-(--shadow-border)',
                         )}
                         onClick={() => onFavoritesOnlyChange(!favoritesOnly)}
@@ -335,7 +335,7 @@ export function HomeChrome({
                         <Button
                           aria-pressed={selectedAuthor === handle}
                           className={cn(
-                            'press-scale h-7 shrink-0 rounded-full px-2.5 text-xs',
+                            'h-7 shrink-0 rounded-full px-2.5 text-xs',
                             selectedAuthor === handle &&
                               'shadow-(--shadow-border)',
                           )}
