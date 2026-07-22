@@ -3,7 +3,7 @@ import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const mediaCardClassName =
-  'relative overflow-hidden bg-background shadow-(--shadow-border) [&_img]:outline-none';
+  'relative isolate overflow-hidden rounded-xl bg-background shadow-(--shadow-border) [&_img]:block [&_img]:size-full [&_img]:object-cover [&_img]:outline-none';
 
 type MediaCardProps<T extends ElementType> = Omit<
   ComponentPropsWithoutRef<T>,

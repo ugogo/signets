@@ -22,11 +22,9 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const initial = defaultTheme ?? resolveTheme(getStoredTheme());
-    applyTheme(initial);
-    return initial;
-  });
+  const [theme, setThemeState] = useState<Theme>(() =>
+    defaultTheme ?? resolveTheme(getStoredTheme()),
+  );
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
@@ -40,10 +38,15 @@ export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
 
   useEffect(() => {
     if (defaultTheme) {
+      applyTheme(defaultTheme);
       return;
     }
 
     const stored = getStoredTheme();
+    const resolved = resolveTheme(stored);
+    setThemeState(resolved);
+    applyTheme(resolved);
+
     if (stored) {
       return;
     }

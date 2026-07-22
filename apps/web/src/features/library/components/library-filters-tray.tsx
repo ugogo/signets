@@ -59,7 +59,7 @@ export function LibraryFiltersTray({
   };
 
   return (
-    <div className="mt-2 space-y-2 rounded-xl bg-muted/50 p-2">
+    <div className="mt-2 space-y-2">
       <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
         <div className="space-y-1">
           <Text as="p" tone="muted" variant="small">
