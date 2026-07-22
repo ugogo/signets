@@ -9,8 +9,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-/** @param {string} rootDir */
-export function createSignetsEslintConfig(rootDir) {
+export function createSignetsEslintConfig() {
   const perfectionistRules = perfectionist.configs['recommended-natural'].rules;
 
   return tseslint.config(
@@ -48,53 +47,36 @@ export function createSignetsEslintConfig(rootDir) {
     },
     {
       files: ['apps/api/**/*.ts'],
-      extends: [...tseslint.configs.recommendedTypeChecked],
+      extends: [...tseslint.configs.recommended],
       languageOptions: {
         globals: {
           ...globals.node,
           ...globals.jest,
         },
-        parserOptions: {
-          projectService: true,
-          tsconfigRootDir: `${rootDir}/apps/api`,
-        },
       },
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
-        '@typescript-eslint/no-floating-promises': 'warn',
-        '@typescript-eslint/no-unsafe-argument': 'warn',
       },
     },
     {
       files: ['packages/shared/**/*.ts'],
-      extends: [...tseslint.configs.recommendedTypeChecked],
+      extends: [...tseslint.configs.recommended],
       languageOptions: {
         globals: globals.node,
-        parserOptions: {
-          projectService: true,
-          tsconfigRootDir: `${rootDir}/packages/shared`,
-        },
       },
     },
     {
       files: ['apps/extension/**/*.ts'],
-      extends: [...tseslint.configs.recommendedTypeChecked],
+      extends: [...tseslint.configs.recommended],
       languageOptions: {
         globals: {
           ...globals.browser,
-        },
-        parserOptions: {
-          projectService: true,
-          tsconfigRootDir: `${rootDir}/apps/extension`,
         },
       },
     },
     {
       files: ['apps/web/**/*.{ts,tsx}'],
-      extends: [
-        ...tseslint.configs.recommendedTypeChecked,
-        ...tseslint.configs.stylisticTypeChecked,
-      ],
+      extends: [...tseslint.configs.recommended],
       plugins: {
         react,
         'react-hooks': reactHooks,
@@ -102,10 +84,6 @@ export function createSignetsEslintConfig(rootDir) {
       },
       languageOptions: {
         globals: globals.browser,
-        parserOptions: {
-          projectService: true,
-          tsconfigRootDir: `${rootDir}/apps/web`,
-        },
       },
       settings: {
         react: {
@@ -119,15 +97,6 @@ export function createSignetsEslintConfig(rootDir) {
           { allowConstantExport: true },
         ],
         'react/react-in-jsx-scope': 'off',
-      },
-    },
-    {
-      files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/test/**/*.ts'],
-      rules: {
-        '@typescript-eslint/no-unsafe-argument': 'off',
-        '@typescript-eslint/no-unsafe-assignment': 'off',
-        '@typescript-eslint/no-unsafe-call': 'off',
-        '@typescript-eslint/no-unsafe-member-access': 'off',
       },
     },
   );

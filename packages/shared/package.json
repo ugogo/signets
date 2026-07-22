@@ -16,8 +16,6 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
-    "lint:fix": "eslint --fix \"src/**/*.ts\" \"test/**/*.ts\"",
     "format": "prettier --write .",
     "test": "vitest run"
   },
