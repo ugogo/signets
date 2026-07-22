@@ -15,16 +15,17 @@ import { Slider } from 'pickle-ui/slider';
 import { Text } from 'pickle-ui/text';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import { Input, InputGroup } from '@/components/input-group';
+import { SegmentControl } from '@/components/segment-control';
 import {
   DEFAULT_DENSITY,
   DEFAULT_VIEW_MODE,
   type ViewMode,
-} from '../lib/library-search-params';
-import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
-import { useScrollCompact } from '../lib/use-scroll-compact';
-import { cn } from '../lib/utils';
-import { Input, InputGroup } from './input-group';
-import { ThemeToggle } from './theme-toggle';
+} from '@/features/library/lib/library-search-params';
+import { useScrollCompact } from '@/features/library/lib/use-scroll-compact';
+import { ThemeToggle } from '@/features/theme/theme-toggle';
+import { REDUCED_MOTION_FADE, UI_SPRING } from '@/lib/motion';
+import { cn } from '@/lib/utils';
 
 export interface HomeChromeProps {
   authors: string[];
@@ -48,11 +49,6 @@ export interface HomeChromeProps {
   shotCount: number;
   viewMode: ViewMode;
 }
-
-const segmentTrackClass =
-  'inline-flex h-8 shrink-0 items-center gap-0.5 rounded-xl bg-muted/50 p-0.5';
-
-const segmentButtonClass = 'h-7 rounded-lg px-2.5';
 
 const FILTER_ICON_MOTION = {
   animate: { filter: 'blur(0px)', opacity: 1, scale: 1 },
@@ -247,40 +243,23 @@ export function HomeChrome({
                       <Text as="p" tone="muted" variant="small">
                         View
                       </Text>
-                      <div
+                      <SegmentControl
                         aria-label="View mode"
-                        className={segmentTrackClass}
-                        role="group"
-                      >
-                        <Button
-                          aria-pressed={viewMode === 'wall'}
-                          className={cn(
-                            segmentButtonClass,
-                            viewMode === 'wall' && 'shadow-(--shadow-border)',
-                          )}
-                          onClick={() => onViewModeChange('wall')}
-                          size="sm"
-                          variant={viewMode === 'wall' ? 'secondary' : 'ghost'}
-                        >
-                          <LayoutGrid className="size-4" />
-                          Wall
-                        </Button>
-                        <Button
-                          aria-pressed={viewMode === 'canvas'}
-                          className={cn(
-                            segmentButtonClass,
-                            viewMode === 'canvas' && 'shadow-(--shadow-border)',
-                          )}
-                          onClick={() => onViewModeChange('canvas')}
-                          size="sm"
-                          variant={
-                            viewMode === 'canvas' ? 'secondary' : 'ghost'
-                          }
-                        >
-                          <Map className="size-4" />
-                          Canvas
-                        </Button>
-                      </div>
+                        onValueChange={onViewModeChange}
+                        options={[
+                          {
+                            icon: <LayoutGrid className="size-4" />,
+                            label: 'Wall',
+                            value: 'wall',
+                          },
+                          {
+                            icon: <Map className="size-4" />,
+                            label: 'Canvas',
+                            value: 'canvas',
+                          },
+                        ]}
+                        value={viewMode}
+                      />
                     </div>
 
                     <div className="space-y-1">
@@ -326,11 +305,9 @@ export function HomeChrome({
                               className="min-w-0 flex-1"
                               max={100}
                               min={0}
-                              onValueChange={(value: number | number[]) => {
-                                const next = Array.isArray(value)
-                                  ? value[0]
-                                  : value;
-                                if (typeof next === 'number') {
+                              onValueChange={(value) => {
+                                const next = densityFromSliderValue(value);
+                                if (next !== undefined) {
                                   onDensityChange(next);
                                 }
                               }}
@@ -449,4 +426,16 @@ export function HomeChrome({
       </main>
     </div>
   );
+}
+
+function densityFromSliderValue(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (!Array.isArray(value) || typeof value[0] !== 'number') {
+    return undefined;
+  }
+
+  return value[0];
 }

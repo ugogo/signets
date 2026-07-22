@@ -15,15 +15,22 @@ import {
   useState,
 } from 'react';
 
-import { computeMasonryLayout, FALLBACK_ASPECT } from '../lib/canvas-grid';
-import { OPACITY_CROSSFADE } from '../lib/motion';
-import { shotPosterSource } from '../lib/shot-media';
-import { useElementSize } from '../lib/use-element-size';
-import { useCanvasViewport } from '../lib/use-pan-zoom';
-import { tileInRect, useVisibleRect } from '../lib/use-visible-rect';
+import { StaggerEntrance, StaggerItem } from '@/components/stagger-entrance';
+import {
+  computeMasonryLayout,
+  FALLBACK_ASPECT,
+} from '@/features/library/lib/canvas-grid';
+import { shotPosterSource } from '@/features/library/lib/shot-media';
+import { useElementSize } from '@/features/library/lib/use-element-size';
+import { useCanvasViewport } from '@/features/library/lib/use-pan-zoom';
+import {
+  tileInRect,
+  useVisibleRect,
+} from '@/features/library/lib/use-visible-rect';
+import { OPACITY_CROSSFADE } from '@/lib/motion';
+
 import { MediaCard } from './media-card';
 import { MotionShotOverlay } from './motion-shot-media';
-import { StaggerEntrance, StaggerItem } from './stagger-entrance';
 
 const COLUMN_WIDTH = 260;
 const GAP = 16;

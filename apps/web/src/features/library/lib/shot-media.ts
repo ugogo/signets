@@ -1,6 +1,7 @@
 import type { Shot } from '@signets/shared';
 
-import { xThumbnailUrl } from './api';
+import { xThumbnailUrl } from '@/lib/api';
+
 import { xMediaPlaybackUrl } from './x-media';
 
 export function shotFocusSource(shot: Shot): string {

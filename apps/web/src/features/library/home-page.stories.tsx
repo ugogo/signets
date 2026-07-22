@@ -4,14 +4,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AnimatePresence } from 'motion/react';
 import { useMemo, useState } from 'react';
 
-import type { ViewMode } from '@/lib/library-search-params';
+import type { ViewMode } from '@/features/library/lib/library-search-params';
 
-import { HomeChrome } from '@/components/home-chrome';
-import { ShotCanvas } from '@/components/shot-canvas';
-import { ShotFocus } from '@/components/shot-focus';
-import { ShotGallery } from '@/components/shot-gallery';
+import { HomeChrome } from '@/features/library/components/home-chrome';
+import { ShotCanvas } from '@/features/library/components/shot-canvas';
+import { ShotFocus } from '@/features/library/components/shot-focus';
+import { ShotGallery } from '@/features/library/components/shot-gallery';
 
-import { mockAuthors, mockShots } from '../fixtures/shots';
+import { mockAuthors, mockShots } from './fixtures/shots';
 
 function HomePagePreview() {
   const [search, setSearch] = useState('');
@@ -112,7 +112,7 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
   },
-  title: 'Pages/Home/Full page',
+  title: 'Features/Library/Home page',
 } satisfies Meta<typeof HomePagePreview>;
 
 export default meta;

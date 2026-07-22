@@ -2,8 +2,9 @@ import { Moon, Sun } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 
-import { UI_SPRING } from '../lib/motion';
-import { cn } from '../lib/utils';
+import { UI_SPRING } from '@/lib/motion';
+import { cn } from '@/lib/utils';
+
 import { useTheme } from './theme-context';
 
 interface ThemeToggleProps {

@@ -6,13 +6,15 @@ import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import { useCallback, useMemo } from 'react';
 
-import { OPACITY_CROSSFADE } from '../lib/motion';
-import { shotPosterSource } from '../lib/shot-media';
-import { useInfiniteScrollSentinel } from '../lib/use-infinite-scroll-sentinel';
-import { cn } from '../lib/utils';
+import { LinkButton } from '@/components/link-button';
+import { StaggerEntrance, StaggerItem } from '@/components/stagger-entrance';
+import { shotPosterSource } from '@/features/library/lib/shot-media';
+import { OPACITY_CROSSFADE } from '@/lib/motion';
+import { useInfiniteScrollSentinel } from '@/lib/use-infinite-scroll-sentinel';
+import { cn } from '@/lib/utils';
+
 import { MediaCard, SurfaceCard } from './media-card';
 import { MotionShotOverlay } from './motion-shot-media';
-import { StaggerEntrance, StaggerItem } from './stagger-entrance';
 
 const FALLBACK_ASPECT_RATIO = '4 / 5';
 
@@ -260,20 +262,12 @@ function ShotCard({
             'group-focus-within:opacity-100',
           )}
         >
-          <Button
+          <LinkButton
             aria-pressed={authorActive}
-            className={cn(
-              'h-auto w-fit rounded-md p-0 font-mono text-xs font-bold',
-              authorActive
-                ? 'text-primary'
-                : 'text-foreground hover:text-primary',
-            )}
             onClick={() => onAuthorToggle?.(shot.authorHandle)}
-            size="sm"
-            variant="ghost"
           >
             @{shot.authorHandle}
-          </Button>
+          </LinkButton>
           {shot.caption ? (
             <Text className="line-clamp-2 text-xs" tone="muted" variant="small">
               {shot.caption}

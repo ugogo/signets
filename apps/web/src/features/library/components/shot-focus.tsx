@@ -12,9 +12,14 @@ import {
   useRef,
 } from 'react';
 
-import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
-import { shotFocusSource, shotPostUrl } from '../lib/shot-media';
-import { cn } from '../lib/utils';
+import { LinkButton } from '@/components/link-button';
+import {
+  shotFocusSource,
+  shotPostUrl,
+} from '@/features/library/lib/shot-media';
+import { REDUCED_MOTION_FADE, UI_SPRING } from '@/lib/motion';
+import { cn } from '@/lib/utils';
+
 import { MotionShotBadge, MotionShotFocusMedia } from './motion-shot-media';
 
 interface ShotFocusProps {
@@ -144,21 +149,14 @@ export function ShotFocus({
         <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                aria-pressed={authorActive}
-                className={cn(
-                  'h-auto rounded-md p-0 font-semibold',
-                  authorActive
-                    ? 'text-primary'
-                    : 'text-foreground hover:text-primary',
-                )}
+              <LinkButton
+                active={authorActive}
+                className="font-sans text-sm font-semibold"
                 id={labelId}
                 onClick={() => onAuthorToggle?.(shot.authorHandle)}
-                size="sm"
-                variant="ghost"
               >
                 @{shot.authorHandle}
-              </Button>
+              </LinkButton>
               <MotionShotBadge shot={shot} />
             </div>
             {shot.caption ? (

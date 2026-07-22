@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { ShotGallery } from '@/components/shot-gallery';
+import { ShotGallery } from '@/features/library/components/shot-gallery';
 
 import { emptyShots, mockShots } from '../fixtures/shots';
 
@@ -9,7 +9,7 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
   },
-  title: 'Pages/Home/Gallery',
+  title: 'Features/Library/ShotGallery',
 } satisfies Meta<typeof ShotGallery>;
 
 export default meta;

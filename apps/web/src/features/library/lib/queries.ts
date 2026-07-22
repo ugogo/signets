@@ -11,7 +11,7 @@ import {
   fetchShotsPage,
   type ListShotAuthorsParams,
   type ListShotsParams,
-} from '../lib/api';
+} from '@/lib/api';
 
 export function useInfiniteShots(params: ListShotsParams) {
   return useInfiniteQuery({

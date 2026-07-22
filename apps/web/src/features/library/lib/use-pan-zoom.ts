@@ -6,7 +6,7 @@ import {
 } from 'motion/react';
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { UI_SPRING } from './motion';
+import { UI_SPRING } from '@/lib/motion';
 
 export interface PanConstraints {
   bottom: number;

@@ -10,9 +10,10 @@ import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
 
-import { AppProviders } from '../components/app-providers';
-import { NotFound } from '../components/not-found';
-import { themeInitScript } from '../lib/theme';
+import { AppProviders } from '@/components/app-providers';
+import { NotFound } from '@/components/not-found';
+import { themeInitScript } from '@/features/theme/theme';
+
 import appCss from '../styles.css?url';
 
 export const Route = createRootRoute({

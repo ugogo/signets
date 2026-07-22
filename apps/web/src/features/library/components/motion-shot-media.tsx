@@ -3,8 +3,11 @@ import type { Shot } from '@signets/shared';
 import { Film, Play } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
-import { shotFocusSource, shotIsMotion } from '../lib/shot-media';
-import { cn } from '../lib/utils';
+import {
+  shotFocusSource,
+  shotIsMotion,
+} from '@/features/library/lib/shot-media';
+import { cn } from '@/lib/utils';
 
 export function MotionShotBadge({ shot }: { shot: Shot }) {
   if (!shotIsMotion(shot)) {

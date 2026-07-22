@@ -13,7 +13,7 @@ import {
   resolveTheme,
   type Theme,
   THEME_STORAGE_KEY,
-} from '../lib/theme';
+} from './theme';
 import { ThemeContext } from './theme-context';
 
 interface ThemeProviderProps {

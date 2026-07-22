@@ -5,22 +5,25 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useQueryStates } from 'nuqs';
 import { useCallback, useMemo, useState } from 'react';
 
-import { HomeChrome } from '../components/home-chrome';
-import { ShotCanvas } from '../components/shot-canvas';
-import { ShotFocus } from '../components/shot-focus';
-import { ShotGallery } from '../components/shot-gallery';
 import {
   useDeleteShot,
   useToggleShotFavorite,
-} from '../lib/curation-mutations';
+} from '@/features/curation/curation-mutations';
+import { useCurationToken } from '@/features/curation/use-curation-token';
+import { HomeChrome } from '@/features/library/components/home-chrome';
+import { ShotCanvas } from '@/features/library/components/shot-canvas';
+import { ShotFocus } from '@/features/library/components/shot-focus';
+import { ShotGallery } from '@/features/library/components/shot-gallery';
 import {
   librarySearchParams,
   librarySearchSchema,
-} from '../lib/library-search-params';
-import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '../lib/motion';
-import { useInfiniteShots, useShotAuthors } from '../lib/queries';
-import { useCurationToken } from '../lib/use-curation-token';
-import { useDebouncedValue } from '../lib/use-debounced-value';
+} from '@/features/library/lib/library-search-params';
+import {
+  useInfiniteShots,
+  useShotAuthors,
+} from '@/features/library/lib/queries';
+import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '@/lib/motion';
+import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
   component: Home,
