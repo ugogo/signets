@@ -6,9 +6,9 @@ import { useMemo, useState } from 'react';
 
 import type { ViewMode } from '@/features/library/lib/library-search-params';
 
-import { HomeChrome } from '@/features/library/components/home-chrome';
+import { LibraryShell } from '@/features/library/components/library-shell';
 import { ShotCanvas } from '@/features/library/components/shot-canvas';
-import { ShotFocus } from '@/features/library/components/shot-focus';
+import { ShotDetailDialog } from '@/features/library/components/shot-detail-dialog';
 import { ShotGallery } from '@/features/library/components/shot-gallery';
 
 import { mockAuthors, mockShots } from './fixtures/shots';
@@ -47,8 +47,6 @@ function HomePagePreview() {
     setSelectedAuthor((current) => (current === handle ? null : handle));
   };
 
-  const isCanvas = viewMode === 'canvas';
-
   const gallery =
     viewMode === 'wall' ? (
       <ShotGallery
@@ -70,13 +68,12 @@ function HomePagePreview() {
     );
 
   return (
-    <HomeChrome
+    <LibraryShell
       authors={mockAuthors}
-      canCurate={false}
       curationToken=""
       density={density}
       favoritesOnly={favoritesOnly}
-      isCanvas={isCanvas}
+      isCurator={false}
       onAuthorToggle={toggleAuthor}
       onClearCurationToken={() => undefined}
       onCopyLink={() => undefined}
@@ -94,7 +91,7 @@ function HomePagePreview() {
       {gallery}
       <AnimatePresence>
         {focusedShot ? (
-          <ShotFocus
+          <ShotDetailDialog
             key={focusedShot.id}
             onAuthorToggle={toggleAuthor}
             onDismiss={() => setFocusedShot(null)}
@@ -103,7 +100,7 @@ function HomePagePreview() {
           />
         ) : null}
       </AnimatePresence>
-    </HomeChrome>
+    </LibraryShell>
   );
 }
 

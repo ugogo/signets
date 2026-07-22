@@ -23,7 +23,7 @@ export function useCurationToken() {
   }, []);
 
   return {
-    canCurate: Boolean(token && token.length >= 16),
+    isCurator: Boolean(token && token.length >= 16),
     clearToken,
     saveToken,
     token,

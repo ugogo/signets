@@ -9,7 +9,7 @@ import {
 } from '@/features/library/lib/shot-media';
 import { cn } from '@/lib/utils';
 
-export function MotionShotBadge({ shot }: { shot: Shot }) {
+export function ShotKindBadge({ shot }: { shot: Shot }) {
   if (!shotIsMotion(shot)) {
     return null;
   }
@@ -22,7 +22,7 @@ export function MotionShotBadge({ shot }: { shot: Shot }) {
   );
 }
 
-export function MotionShotFocusMedia({ shot }: { shot: Shot }) {
+export function ShotDetailMedia({ shot }: { shot: Shot }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playbackSource = shotFocusSource(shot);
   const label =
@@ -66,7 +66,7 @@ export function MotionShotFocusMedia({ shot }: { shot: Shot }) {
   );
 }
 
-export function MotionShotOverlay({ shot }: { shot: Shot }) {
+export function ShotTileOverlay({ shot }: { shot: Shot }) {
   if (!shotIsMotion(shot)) {
     return null;
   }

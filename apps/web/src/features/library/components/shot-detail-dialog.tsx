@@ -20,12 +20,12 @@ import {
 import { REDUCED_MOTION_FADE, UI_SPRING } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
-import { MotionShotBadge, MotionShotFocusMedia } from './motion-shot-media';
+import { ShotDetailMedia, ShotKindBadge } from './shot-media-ui';
 
-interface ShotFocusProps {
-  canCurate?: boolean;
+export interface ShotDetailDialogProps {
+  favoritePendingShotId?: null | string;
+  isCurator?: boolean;
   isDeleting?: boolean;
-  isFavoritePending?: boolean;
   onAuthorToggle?: (authorHandle: string) => void;
   onDelete?: () => void;
   onDismiss: () => void;
@@ -38,26 +38,27 @@ const FOCUSABLE =
   'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 /**
- * In-place focus for a single canvas shot: enlarged media, metadata strip and a
- * link back to X. A modal dialog — Escape or backdrop click dismisses, focus is
- * trapped inside and restored to the triggering element on close.
+ * Modal detail view for a single shot: enlarged media, metadata strip, and a
+ * link back to X. Escape or backdrop click dismisses; focus is trapped inside
+ * and restored to the triggering element on close.
  */
-export function ShotFocus({
-  canCurate = false,
+export function ShotDetailDialog({
+  favoritePendingShotId = null,
+  isCurator = false,
   isDeleting = false,
-  isFavoritePending = false,
   onAuthorToggle,
   onDelete,
   onDismiss,
   onToggleFavorite,
   selectedAuthor = null,
   shot,
-}: ShotFocusProps) {
+}: ShotDetailDialogProps) {
   const authorActive = selectedAuthor === shot.authorHandle;
+  const isFavoritePending = favoritePendingShotId === shot.id;
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const labelId = useId();
   const reducedMotion = useReducedMotion() ?? false;
-  const isMotion = shot.kind !== 'photo';
+  const isVideo = shot.kind !== 'photo';
 
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -136,8 +137,8 @@ export function ShotFocus({
         transition={panelTransition}
       >
         <div className="flex min-h-0 flex-1 items-center justify-center bg-background p-2">
-          {isMotion ? (
-            <MotionShotFocusMedia shot={shot} />
+          {isVideo ? (
+            <ShotDetailMedia shot={shot} />
           ) : (
             <img
               alt={shot.caption ?? `@${shot.authorHandle} design shot`}
@@ -157,7 +158,7 @@ export function ShotFocus({
               >
                 @{shot.authorHandle}
               </LinkButton>
-              <MotionShotBadge shot={shot} />
+              <ShotKindBadge shot={shot} />
             </div>
             {shot.caption ? (
               <Text className="line-clamp-2" tone="muted" variant="small">
@@ -166,7 +167,7 @@ export function ShotFocus({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {canCurate ? (
+            {isCurator ? (
               <>
                 <Button
                   aria-label={

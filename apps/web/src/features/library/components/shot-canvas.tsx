@@ -1,9 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { CANVAS_PREFETCH_MAX_SHOTS } from '@signets/shared';
-import { Maximize2, Minus, Plus } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -15,7 +13,6 @@ import {
   useState,
 } from 'react';
 
-import { StaggerEntrance, StaggerItem } from '@/components/stagger-entrance';
 import {
   computeMasonryLayout,
   FALLBACK_ASPECT,
@@ -29,8 +26,11 @@ import {
 } from '@/features/library/lib/use-visible-rect';
 import { OPACITY_CROSSFADE } from '@/lib/motion';
 
+import { CanvasZoomControls } from './canvas-zoom-controls';
+import { LibraryEmptyState } from './library-empty-state';
+import { LibraryErrorMessage } from './library-error-message';
 import { MediaCard } from './media-card';
-import { MotionShotOverlay } from './motion-shot-media';
+import { ShotTileOverlay } from './shot-media-ui';
 
 const COLUMN_WIDTH = 260;
 const GAP = 16;
@@ -281,9 +281,7 @@ export function ShotCanvas({
     <AnimatePresence mode="wait">
       {viewKey === 'error' ? (
         <motion.div key="error" {...OPACITY_CROSSFADE}>
-          <Text className="text-destructive">
-            Could not reach the API. Start the NestJS server on port 3001.
-          </Text>
+          <LibraryErrorMessage />
         </motion.div>
       ) : null}
       {viewKey === 'loading' ? (
@@ -303,14 +301,7 @@ export function ShotCanvas({
           key="empty"
           {...OPACITY_CROSSFADE}
         >
-          <StaggerEntrance className="flex flex-col items-center gap-3">
-            <StaggerItem>
-              <Text weight="bold">Nothing here yet</Text>
-            </StaggerItem>
-            <StaggerItem>
-              <Text tone="muted">{emptyMessage}</Text>
-            </StaggerItem>
-          </StaggerEntrance>
+          <LibraryEmptyState message={emptyMessage} variant="minimal" />
         </motion.div>
       ) : null}
       {viewKey === 'canvas' ? (
@@ -403,41 +394,18 @@ export function ShotCanvas({
                       loading="lazy"
                       src={shotPosterSource(shot, thumbnailSize)}
                     />
-                    <MotionShotOverlay shot={shot} />
+                    <ShotTileOverlay shot={shot} />
                   </MediaCard>
                 );
               })}
             </motion.div>
 
-            <div className="floating-chrome absolute right-3 top-3 flex flex-col gap-1.5 rounded-lg p-1 shadow-[var(--shadow-border)]">
-              <Button
-                aria-label="Zoom in"
-                disabled={!isReady}
-                onClick={() => zoomBy(ZOOM_STEP)}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="size-4" />
-              </Button>
-              <Button
-                aria-label="Zoom out"
-                disabled={!isReady}
-                onClick={() => zoomBy(1 / ZOOM_STEP)}
-                size="sm"
-                variant="outline"
-              >
-                <Minus className="size-4" />
-              </Button>
-              <Button
-                aria-label="Fit all"
-                disabled={!isReady}
-                onClick={fitToView}
-                size="sm"
-                variant="outline"
-              >
-                <Maximize2 className="size-4" />
-              </Button>
-            </div>
+            <CanvasZoomControls
+              isReady={isReady}
+              onFit={fitToView}
+              onZoomIn={() => zoomBy(ZOOM_STEP)}
+              onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
+            />
 
             {isFilling ? (
               <div

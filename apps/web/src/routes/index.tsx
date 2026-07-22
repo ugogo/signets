@@ -10,9 +10,9 @@ import {
   useToggleShotFavorite,
 } from '@/features/curation/curation-mutations';
 import { useCurationToken } from '@/features/curation/use-curation-token';
-import { HomeChrome } from '@/features/library/components/home-chrome';
+import { LibraryShell } from '@/features/library/components/library-shell';
 import { ShotCanvas } from '@/features/library/components/shot-canvas';
-import { ShotFocus } from '@/features/library/components/shot-focus';
+import { ShotDetailDialog } from '@/features/library/components/shot-detail-dialog';
 import { ShotGallery } from '@/features/library/components/shot-gallery';
 import {
   librarySearchParams,
@@ -35,7 +35,7 @@ function Home() {
   const { author, density, favorites, search, viewMode } = filters;
   const [focusedShot, setFocusedShot] = useState<null | Shot>(null);
   const [tokenDraft, setTokenDraft] = useState('');
-  const { canCurate, clearToken, saveToken, token } = useCurationToken();
+  const { clearToken, isCurator, saveToken, token } = useCurationToken();
   const toggleFavorite = useToggleShotFavorite();
   const deleteShot = useDeleteShot();
 
@@ -155,14 +155,14 @@ function Home() {
           transition={viewTransition}
         >
           <ShotGallery
-            canCurate={canCurate}
             density={density}
             error={error}
-            favoritePendingId={
+            favoritePendingShotId={
               toggleFavorite.isPending ? toggleFavorite.variables : null
             }
             fetchNextPage={handleFetchNextPage}
             hasNextPage={hasNextPage}
+            isCurator={isCurator}
             isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
             onAuthorToggle={toggleAuthor}
@@ -177,13 +177,12 @@ function Home() {
   );
 
   return (
-    <HomeChrome
+    <LibraryShell
       authors={authors}
-      canCurate={canCurate}
       curationToken={tokenDraft ?? token ?? ''}
       density={density}
       favoritesOnly={favorites}
-      isCanvas={isCanvas}
+      isCurator={isCurator}
       onAuthorToggle={toggleAuthor}
       onClearCurationToken={() => {
         clearToken();
@@ -218,13 +217,12 @@ function Home() {
       {gallery}
       <AnimatePresence>
         {focusedShot ? (
-          <ShotFocus
-            canCurate={canCurate}
-            isDeleting={deleteShot.isPending}
-            isFavoritePending={
-              toggleFavorite.isPending &&
-              toggleFavorite.variables === focusedShot.id
+          <ShotDetailDialog
+            favoritePendingShotId={
+              toggleFavorite.isPending ? toggleFavorite.variables : null
             }
+            isCurator={isCurator}
+            isDeleting={deleteShot.isPending}
             key={focusedShot.id}
             onAuthorToggle={toggleAuthor}
             onDelete={handleDeleteFocusedShot}
@@ -235,6 +233,6 @@ function Home() {
           />
         ) : null}
       </AnimatePresence>
-    </HomeChrome>
+    </LibraryShell>
   );
 }
