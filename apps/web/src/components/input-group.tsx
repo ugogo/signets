@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import { type InputProps, Input as PickleInput } from 'pickle-ui/input';
 import { InputGroup as PickleInputGroup } from 'pickle-ui/input-group';
 
-import { cn } from '../lib/utils';
+import { cn } from '@/lib/utils';
 
 type InputGroupAddonProps = ComponentProps<typeof PickleInputGroup.Addon>;
 type InputGroupProps = ComponentProps<typeof PickleInputGroup>;

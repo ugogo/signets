@@ -3,7 +3,7 @@ import { Bookmark } from 'lucide-react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 
-import { StaggerEntrance, StaggerItem } from './stagger-entrance';
+import { StaggerEntrance, StaggerItem } from '@/components/stagger-entrance';
 
 export function NotFound() {
   return (

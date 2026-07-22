@@ -7,8 +7,8 @@ import {
   PAGE_ITEM_VARIANTS,
   REDUCED_MOTION_FADE,
   UI_SPRING,
-} from '../lib/motion';
-import { cn } from '../lib/utils';
+} from '@/lib/motion';
+import { cn } from '@/lib/utils';
 
 interface StaggerEntranceProps {
   children: ReactNode;

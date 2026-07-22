@@ -3,8 +3,8 @@ import type { Decorator } from '@storybook/react-vite';
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
 
-import { ThemeProvider } from '../src/components/theme-provider';
-import { type Theme } from '../src/lib/theme';
+import { type Theme } from '../src/features/theme/theme';
+import { ThemeProvider } from '../src/features/theme/theme-provider';
 import '../src/styles.css';
 
 const withTheme: Decorator = (Story, context) => {

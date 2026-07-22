@@ -32,7 +32,7 @@ const config: StorybookConfig = {
     '@storybook/addon-mcp',
   ],
   framework: '@storybook/react-vite',
-  stories: ['../src/stories/**/*.stories.@(ts|tsx)'],
+  stories: ['../src/{components,features}/**/*.stories.@(ts|tsx)'],
   viteFinal(viteConfig) {
     const plugins = (viteConfig.plugins ?? []).flat().filter((plugin) => {
       const name = getPluginName(plugin);
