@@ -2,11 +2,11 @@ import type { Shot } from '@signets/shared';
 
 import { BookmarkPlus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { OPACITY_CROSSFADE } from '@/lib/motion';
-import { useInfiniteScrollSentinel } from '@/lib/use-infinite-scroll-sentinel';
 
 import { LibraryEmptyState } from './library-empty-state';
 import { LibraryErrorMessage } from './library-error-message';
@@ -50,17 +50,6 @@ export function ShotGallery({
     const max = 420;
     return Math.round(min + ((max - min) * density) / 100);
   }, [density]);
-
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage?.();
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-  const sentinelRef = useInfiniteScrollSentinel(
-    hasNextPage && !isFetchingNextPage,
-    loadMore,
-  );
 
   const viewKey =
     isLoading && shots.length === 0
@@ -117,14 +106,16 @@ export function ShotGallery({
               />
             ))}
           </div>
-          <div aria-hidden className="h-px w-full" ref={sentinelRef} />
-          {isFetchingNextPage ? (
-            <Text
-              className="mt-6 text-center font-mono text-xs tabular-nums"
-              tone="muted"
-            >
-              Loading more…
-            </Text>
+          {hasNextPage ? (
+            <div className="mt-8 flex justify-center">
+              <Button
+                disabled={isFetchingNextPage}
+                onClick={() => fetchNextPage?.()}
+                variant="outline"
+              >
+                {isFetchingNextPage ? 'Loading more…' : 'Load more'}
+              </Button>
+            </div>
           ) : null}
         </motion.div>
       ) : null}
