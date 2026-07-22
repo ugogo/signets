@@ -1,7 +1,6 @@
 import type { Size } from './use-pan-zoom';
 
-/** Aspect ratio (width / height) used for tiles whose real size is unknown. */
-export const FALLBACK_ASPECT = 4 / 5;
+import { FALLBACK_ASPECT } from './masonry';
 
 export interface MasonryLayout {
   columns: number;

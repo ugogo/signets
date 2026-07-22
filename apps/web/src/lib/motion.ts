@@ -44,3 +44,27 @@ export const OPACITY_CROSSFADE = {
   initial: { opacity: 0 },
   transition: REDUCED_MOTION_FADE,
 } as const;
+
+/** Wall gallery tile entrance — light spring with subtle settle. */
+export const WALL_ENTRANCE_SPRING = {
+  bounce: 0.18,
+  duration: 0.28,
+  type: 'spring',
+} as const;
+
+/** Tile rise + settle; transform-only for compositing. */
+export const WALL_ITEM_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.97, y: 10 },
+  visible: { opacity: 1, scale: 1, y: 0 },
+} as const;
+
+export const WALL_REDUCED_MOTION_FADE = {
+  duration: 0.12,
+  ease: 'easeOut',
+} as const;
+
+/** Delay between wall tiles in a batch (seconds). */
+export const WALL_STAGGER_DELAY = 0.02;
+
+/** Max stagger delay cap for large first pages (seconds). */
+export const WALL_MAX_STAGGER_DELAY = 0.36;

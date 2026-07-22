@@ -81,6 +81,10 @@ function Home() {
     ? { opacity: 0 }
     : { filter: 'blur(4px)', opacity: 0, y: 12 };
   const viewExit = reducedMotion ? { opacity: 0 } : VIEW_EXIT;
+  const wallTransition = REDUCED_MOTION_FADE;
+  const wallInitial = { opacity: 0 };
+  const wallAnimate = { opacity: 1 };
+  const wallExit = { opacity: 0 };
 
   const toggleAuthor = useCallback(
     (handle: string) => {
@@ -148,11 +152,11 @@ function Home() {
         </motion.div>
       ) : (
         <motion.div
-          animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
-          exit={viewExit}
-          initial={viewInitial}
+          animate={wallAnimate}
+          exit={wallExit}
+          initial={wallInitial}
           key="wall"
-          transition={viewTransition}
+          transition={wallTransition}
         >
           <ShotGallery
             density={density}

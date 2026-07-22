@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   chooseColumnCount,
   computeMasonryLayout,
-  FALLBACK_ASPECT,
 } from './canvas-grid';
+import {
+  columnsForWidth,
+  FALLBACK_ASPECT,
+  packIntoColumns,
+} from './masonry';
 import {
   clampScale,
   clampTranslate,
@@ -49,6 +53,60 @@ describe('chooseColumnCount', () => {
     const biased = chooseColumnCount(40, VIEWPORT, 240, FALLBACK_ASPECT, 0.6);
     expect(biased).toBeLessThanOrEqual(neutral);
     expect(biased).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('columnsForWidth', () => {
+  it('returns zero for non-positive dimensions', () => {
+    expect(columnsForWidth(0, 240, 12)).toBe(0);
+    expect(columnsForWidth(800, 0, 12)).toBe(0);
+  });
+
+  it('fits as many columns as the container allows', () => {
+    // (800 + 12) / (240 + 12) = 3.22 → 3
+    expect(columnsForWidth(800, 240, 12)).toBe(3);
+  });
+
+  it('does not depend on item count (stable under append)', () => {
+    const width = 1000;
+    const columnWidth = 200;
+    const gap = 12;
+    expect(columnsForWidth(width, columnWidth, gap)).toBe(
+      columnsForWidth(width, columnWidth, gap),
+    );
+  });
+});
+
+describe('packIntoColumns', () => {
+  it('returns no columns for empty input', () => {
+    expect(packIntoColumns([], 3, 240, 12)).toEqual([]);
+  });
+
+  it('drops each tile into the shortest column', () => {
+    // Three equal tiles into two columns: third stacks under the first.
+    const packed = packIntoColumns([1, 1, 1], 2, 240, 12);
+    expect(packed).toEqual([[0, 2], [1]]);
+  });
+
+  it('keeps earlier assignments when new items are appended', () => {
+    const firstBatch = [2, 0.5, 1, 1.2, 0.8, 1.5];
+    const secondBatch = [...firstBatch, 0.9, 1.1, 0.7];
+    const columns = 3;
+
+    const before = packIntoColumns(firstBatch, columns, 240, 12);
+    const after = packIntoColumns(secondBatch, columns, 240, 12);
+
+    for (let column = 0; column < columns; column += 1) {
+      expect(after[column].slice(0, before[column].length)).toEqual(
+        before[column],
+      );
+    }
+
+    const placed = new Set(after.flat());
+    expect(placed.size).toBe(secondBatch.length);
+    for (let index = 0; index < secondBatch.length; index += 1) {
+      expect(placed.has(index)).toBe(true);
+    }
   });
 });
 

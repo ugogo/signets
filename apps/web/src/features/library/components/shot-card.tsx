@@ -37,7 +37,7 @@ export function ShotCard({
   const mediaLabel = shot.caption ?? `@${shot.authorHandle} design shot`;
 
   return (
-    <article className="group relative mb-3 inline-block w-full break-inside-avoid">
+    <article className="group relative w-full">
       <MediaCard className="press-scale block transition-[box-shadow,transform] duration-200 ease-out hover:shadow-(--shadow-border-hover) hover-fine:-translate-y-0.5">
         <button
           aria-label={`Open ${mediaLabel}`}

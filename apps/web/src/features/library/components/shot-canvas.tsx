@@ -18,10 +18,8 @@ import {
   useState,
 } from 'react';
 
-import {
-  computeMasonryLayout,
-  FALLBACK_ASPECT,
-} from '@/features/library/lib/canvas-grid';
+import { computeMasonryLayout } from '@/features/library/lib/canvas-grid';
+import { FALLBACK_ASPECT } from '@/features/library/lib/masonry';
 import { shotPosterSource } from '@/features/library/lib/shot-media';
 import { useElementSize } from '@/features/library/lib/use-element-size';
 import { useCanvasViewport } from '@/features/library/lib/use-pan-zoom';
