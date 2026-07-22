@@ -91,10 +91,6 @@ export function LibraryFiltersTray({
           <Button
             aria-label="Favorites only"
             aria-pressed={favoritesOnly}
-            className={cn(
-              'size-8 rounded-xl',
-              favoritesOnly && 'shadow-(--shadow-border)',
-            )}
             onClick={() => onFavoritesOnlyChange(!favoritesOnly)}
             size="sm"
             variant={favoritesOnly ? 'secondary' : 'outline'}
@@ -158,10 +154,6 @@ export function LibraryFiltersTray({
           {authors.map((handle) => (
             <Button
               aria-pressed={selectedAuthor === handle}
-              className={cn(
-                'h-7 shrink-0 rounded-full px-2.5 text-xs',
-                selectedAuthor === handle && 'shadow-(--shadow-border)',
-              )}
               key={handle}
               onClick={() => onAuthorToggle(handle)}
               size="sm"

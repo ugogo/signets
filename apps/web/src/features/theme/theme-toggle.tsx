@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 
 import { UI_SPRING } from '@/lib/motion';
-import { cn } from '@/lib/utils';
 
 import { useTheme } from './theme-context';
 
@@ -25,10 +24,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
   return (
     <Button
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={cn(
-        'relative size-8 shrink-0 after:absolute after:top-1/2 after:left-1/2 after:size-9 after:-translate-x-1/2 after:-translate-y-1/2',
-        className,
-      )}
+      className={className}
       onClick={toggleTheme}
       size="sm"
       variant="outline"

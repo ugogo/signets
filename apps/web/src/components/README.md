@@ -16,7 +16,6 @@ Before adding a new wrapper, check this folder — avoid duplicating the same pi
 |---|---|
 | `input-group` | Search / token fields with a single shadow-border shell |
 | `segment-control` | Mutually exclusive toggles (e.g. wall / canvas view) |
-| `link-button` | Inline ghost `@author` links |
 | `stagger-entrance` | Staggered empty-state / page entrance motion |
 | `app-providers` | Query client + theme at the app root |
 | `not-found` | 404 page |

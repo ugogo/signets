@@ -10,7 +10,6 @@ import {
   useId,
 } from 'react';
 
-import { LinkButton } from '@/components/link-button';
 import {
   shotFocusSource,
   shotPostUrl,
@@ -146,14 +145,14 @@ export function ShotDetailDialog({
         <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <LinkButton
-                active={authorActive}
-                className="font-sans text-sm font-semibold"
+              <Button
                 id={labelId}
                 onClick={() => onAuthorToggle?.(shot.authorHandle)}
+                size="sm"
+                variant={authorActive ? 'secondary' : 'ghost'}
               >
                 @{shot.authorHandle}
-              </LinkButton>
+              </Button>
               <ShotKindBadge shot={shot} />
             </div>
             {shot.caption ? (

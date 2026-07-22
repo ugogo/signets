@@ -4,7 +4,6 @@ import { Star } from 'lucide-react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 
-import { LinkButton } from '@/components/link-button';
 import { shotPosterSource } from '@/features/library/lib/shot-media';
 import { cn } from '@/lib/utils';
 
@@ -75,7 +74,6 @@ export function ShotCard({
                   shot.isFavorite ? 'Remove favorite' : 'Mark as favorite'
                 }
                 aria-pressed={shot.isFavorite}
-                className="size-7 rounded-full bg-background/80 backdrop-blur-sm"
                 disabled={isFavoritePending}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -92,7 +90,7 @@ export function ShotCard({
                 />
               </Button>
             ) : shot.isFavorite ? (
-              <span className="flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
+              <span className="flex size-7 items-center justify-center">
                 <Star className="size-3.5 fill-primary text-primary" />
               </span>
             ) : null}
@@ -106,12 +104,14 @@ export function ShotCard({
             'group-focus-within:opacity-100',
           )}
         >
-          <LinkButton
+          <Button
             aria-pressed={authorActive}
             onClick={() => onAuthorToggle?.(shot.authorHandle)}
+            size="sm"
+            variant={authorActive ? 'secondary' : 'ghost'}
           >
             @{shot.authorHandle}
-          </LinkButton>
+          </Button>
           {shot.caption ? (
             <Text className="line-clamp-2 text-xs" tone="muted" variant="small">
               {shot.caption}

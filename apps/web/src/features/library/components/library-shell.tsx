@@ -157,7 +157,6 @@ export function LibraryShell({
             <Button
               aria-expanded={filtersOpen}
               aria-label={filtersOpen ? 'Close filters' : 'Open filters'}
-              className="relative size-8 shrink-0 rounded-xl"
               onClick={() => setFiltersOpen((open) => !open)}
               size="sm"
               variant={
@@ -178,13 +177,7 @@ export function LibraryShell({
                 </motion.span>
               </AnimatePresence>
               {activeFilterCount > 0 && !filtersOpen ? (
-                <Badge
-                  aria-hidden
-                  className="absolute -top-1 -right-1 size-4 justify-center rounded-full bg-foreground p-0 text-[10px] text-background"
-                  variant="secondary"
-                >
-                  {activeFilterCount}
-                </Badge>
+                <Badge variant="secondary">{activeFilterCount}</Badge>
               ) : null}
             </Button>
 
