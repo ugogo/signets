@@ -6,14 +6,6 @@ export type BookmarksRequestParams = {
   variables: Record<string, unknown>;
 };
 
-type TimelineCursorEntry = {
-  content?: {
-    cursorType?: string;
-    value?: string;
-  };
-  entryId?: string;
-};
-
 type CursorTimelineBody = {
   data?: {
     bookmark_timeline_v2?: {
@@ -37,40 +29,15 @@ type CursorTimelineBody = {
   };
 };
 
+type TimelineCursorEntry = {
+  content?: {
+    cursorType?: string;
+    value?: string;
+  };
+  entryId?: string;
+};
+
 const BOOKMARKS_PAGE_SIZE = 100;
-
-export function parseBookmarksRequestUrl(
-  requestUrl: string,
-): Omit<BookmarksRequestParams, 'headers'> | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(requestUrl, 'https://x.com');
-  } catch {
-    return null;
-  }
-
-  const match = parsed.pathname.match(/\/i\/api\/graphql\/([^/]+)\/([^/]+)/i);
-  if (!match) {
-    return null;
-  }
-
-  const variablesRaw = parsed.searchParams.get('variables');
-  const featuresRaw = parsed.searchParams.get('features');
-  if (!variablesRaw || !featuresRaw) {
-    return null;
-  }
-
-  try {
-    return {
-      features: JSON.parse(featuresRaw) as Record<string, unknown>,
-      operation: match[2]!,
-      queryId: match[1]!,
-      variables: JSON.parse(variablesRaw) as Record<string, unknown>,
-    };
-  } catch {
-    return null;
-  }
-}
 
 export function buildBookmarksRequestUrl(
   params: Omit<BookmarksRequestParams, 'headers'>,
@@ -120,4 +87,37 @@ export function extractBottomCursor(body: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+export function parseBookmarksRequestUrl(
+  requestUrl: string,
+): null | Omit<BookmarksRequestParams, 'headers'> {
+  let parsed: URL;
+  try {
+    parsed = new URL(requestUrl, 'https://x.com');
+  } catch {
+    return null;
+  }
+
+  const match = parsed.pathname.match(/\/i\/api\/graphql\/([^/]+)\/([^/]+)/i);
+  if (!match) {
+    return null;
+  }
+
+  const variablesRaw = parsed.searchParams.get('variables');
+  const featuresRaw = parsed.searchParams.get('features');
+  if (!variablesRaw || !featuresRaw) {
+    return null;
+  }
+
+  try {
+    return {
+      features: JSON.parse(featuresRaw) as Record<string, unknown>,
+      operation: match[2]!,
+      queryId: match[1]!,
+      variables: JSON.parse(variablesRaw) as Record<string, unknown>,
+    };
+  } catch {
+    return null;
+  }
 }

@@ -2,6 +2,7 @@ import type { Decorator } from '@storybook/react-vite';
 
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
+
 import { ThemeProvider } from '../src/components/theme-provider';
 import { type Theme } from '../src/lib/theme';
 import '../src/styles.css';
@@ -37,6 +38,9 @@ const preview = {
     theme: 'dark',
   },
   parameters: {
+    a11y: {
+      test: 'todo',
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,
@@ -44,9 +48,6 @@ const preview = {
       },
     },
     layout: 'fullscreen',
-    a11y: {
-      test: 'todo',
-    },
   },
 };
 

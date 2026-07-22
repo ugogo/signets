@@ -1,10 +1,9 @@
-import { z } from 'zod';
-
 import {
   syncPayloadSchema,
   syncResultSchema,
   syncShotInputSchema,
 } from '@signets/shared';
+import { z } from 'zod';
 
 export const extensionActivityStateSchema = z.enum([
   'idle',
@@ -119,10 +118,10 @@ export type ExtensionSyncStateResponse = z.infer<
   typeof extensionSyncStateResponseSchema
 >;
 
-export function isExtensionMessage(
+export function isAutoScrollResponse(
   value: unknown,
-): value is ExtensionMessage {
-  return extensionMessageSchema.safeParse(value).success;
+): value is AutoScrollResponse {
+  return autoScrollResponseSchema.safeParse(value).success;
 }
 
 export function isBackgroundBroadcast(
@@ -131,30 +130,28 @@ export function isBackgroundBroadcast(
   return backgroundBroadcastSchema.safeParse(value).success;
 }
 
-export function isGetCapturedShotsResponse(
-  value: unknown,
-): value is GetCapturedShotsResponse {
-  return getCapturedShotsResponseSchema.safeParse(value).success;
-}
-
-export function isAutoScrollResponse(
-  value: unknown,
-): value is AutoScrollResponse {
-  return autoScrollResponseSchema.safeParse(value).success;
-}
-
-export function isSyncNowResponse(value: unknown): value is SyncNowResponse {
-  return syncNowResponseSchema.safeParse(value).success;
-}
-
 export function isDryRunResponse(value: unknown): value is DryRunResponse {
   return dryRunResponseSchema.safeParse(value).success;
+}
+
+export function isExtensionMessage(value: unknown): value is ExtensionMessage {
+  return extensionMessageSchema.safeParse(value).success;
 }
 
 export function isExtensionSyncStateResponse(
   value: unknown,
 ): value is ExtensionSyncStateResponse {
   return extensionSyncStateResponseSchema.safeParse(value).success;
+}
+
+export function isGetCapturedShotsResponse(
+  value: unknown,
+): value is GetCapturedShotsResponse {
+  return getCapturedShotsResponseSchema.safeParse(value).success;
+}
+
+export function isSyncNowResponse(value: unknown): value is SyncNowResponse {
+  return syncNowResponseSchema.safeParse(value).success;
 }
 
 /** @deprecated Use isExtensionSyncStateResponse */

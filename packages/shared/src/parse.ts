@@ -1,4 +1,4 @@
-import type { ZodType, ZodIssue } from 'zod';
+import type { ZodIssue, ZodType } from 'zod';
 
 export class SchemaValidationError extends Error {
   constructor(
@@ -8,6 +8,15 @@ export class SchemaValidationError extends Error {
     super(message);
     this.name = 'SchemaValidationError';
   }
+}
+
+export async function parseJsonResponse<T extends ZodType>(
+  schema: T,
+  response: Response,
+  message = 'Invalid API response',
+): Promise<T['_output']> {
+  const data: unknown = await response.json();
+  return parseWithSchema(schema, data, message);
 }
 
 export function parseWithSchema<T extends ZodType>(
@@ -21,13 +30,4 @@ export function parseWithSchema<T extends ZodType>(
   }
 
   return result.data;
-}
-
-export async function parseJsonResponse<T extends ZodType>(
-  schema: T,
-  response: Response,
-  message = 'Invalid API response',
-): Promise<T['_output']> {
-  const data: unknown = await response.json();
-  return parseWithSchema(schema, data, message);
 }

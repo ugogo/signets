@@ -1,22 +1,18 @@
+import type { SyncPayload } from '@signets/shared';
+
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { SyncPayload } from '@signets/shared';
 import { syncPayloadSchema } from '@signets/shared';
+
+import type { SyncVerifyResponse } from './sync.schema.js';
 
 import { SyncTokenGuard } from '../auth/sync-token.guard.js';
 import { zodPipe } from '../common/zod-validation.pipe.js';
 import { SyncService } from './sync.service.js';
-import type { SyncVerifyResponse } from './sync.schema.js';
 
 @Controller('sync')
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}
-
-  @Get('verify')
-  @UseGuards(SyncTokenGuard)
-  verify(): SyncVerifyResponse {
-    return { ok: true };
-  }
 
   @Get('state')
   @UseGuards(SyncTokenGuard)
@@ -29,5 +25,11 @@ export class SyncController {
   @UseGuards(SyncTokenGuard)
   async sync(@Body(zodPipe(syncPayloadSchema)) payload: SyncPayload) {
     return this.syncService.upsertShots(payload);
+  }
+
+  @Get('verify')
+  @UseGuards(SyncTokenGuard)
+  verify(): SyncVerifyResponse {
+    return { ok: true };
   }
 }

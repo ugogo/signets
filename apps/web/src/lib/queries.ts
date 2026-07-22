@@ -1,9 +1,10 @@
+import type { ListShotsResponse } from '@signets/shared';
+
 import {
   keepPreviousData,
   useInfiniteQuery,
   useQuery,
 } from '@tanstack/react-query';
-import type { ListShotsResponse } from '@signets/shared';
 
 import {
   fetchShotAuthors,

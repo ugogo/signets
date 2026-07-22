@@ -17,11 +17,17 @@ export function createSignetsEslintConfig(rootDir) {
     {
       ignores: [
         '**/node_modules/**',
+        '**/.pnpm/**',
         '**/dist/**',
         '**/.output/**',
         '**/.wrangler/**',
         '**/coverage/**',
         '**/.agents/**',
+        '**/.claude/**',
+        '**/.cursor/**',
+        '**/.scratch/**',
+        '**/storybook-static/**',
+        '**/*.min.js',
         '**/routeTree.gen.ts',
         '**/eslint.config.mjs',
         'apps/extension/public/**',
@@ -119,7 +125,9 @@ export function createSignetsEslintConfig(rootDir) {
       files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/test/**/*.ts'],
       rules: {
         '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
         '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
       },
     },
   );

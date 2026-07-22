@@ -1,5 +1,6 @@
-import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
+
+import { motion, useReducedMotion } from 'motion/react';
 
 import {
   EMPTY_STATE_STAGGER,
@@ -10,6 +11,11 @@ import {
 import { cn } from '../lib/utils';
 
 interface StaggerEntranceProps {
+  children: ReactNode;
+  className?: string;
+}
+
+interface StaggerItemProps {
   children: ReactNode;
   className?: string;
 }
@@ -25,11 +31,6 @@ export function StaggerEntrance({ children, className }: StaggerEntranceProps) {
       {children}
     </motion.div>
   );
-}
-
-interface StaggerItemProps {
-  children: ReactNode;
-  className?: string;
 }
 
 export function StaggerItem({ children, className }: StaggerItemProps) {

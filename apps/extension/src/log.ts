@@ -1,10 +1,10 @@
-export type LogLevel = 'error' | 'info' | 'success' | 'warn';
-
 export type LogEntry = {
   level: LogLevel;
   message: string;
   timestamp: number;
 };
+
+export type LogLevel = 'error' | 'info' | 'success' | 'warn';
 
 const MAX_LOG_ENTRIES = 100;
 const logs: LogEntry[] = [];
@@ -15,18 +15,18 @@ export function appendLog(level: LogLevel, message: string): void {
     logs.shift();
   }
 
-  void chrome.runtime.sendMessage({ logs: [...logs], type: 'log-updated' }).catch(
-    () => undefined,
-  );
-}
-
-export function getLogs(): LogEntry[] {
-  return [...logs];
+  void chrome.runtime
+    .sendMessage({ logs: [...logs], type: 'log-updated' })
+    .catch(() => undefined);
 }
 
 export function clearLogs(): void {
   logs.length = 0;
-  void chrome.runtime.sendMessage({ logs: [], type: 'log-updated' }).catch(
-    () => undefined,
-  );
+  void chrome.runtime
+    .sendMessage({ logs: [], type: 'log-updated' })
+    .catch(() => undefined);
+}
+
+export function getLogs(): LogEntry[] {
+  return [...logs];
 }

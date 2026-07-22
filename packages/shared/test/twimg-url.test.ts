@@ -20,8 +20,6 @@ describe('isAllowedTwimgUrl', () => {
   });
 
   it('rejects non-HTTPS URLs', () => {
-    expect(isAllowedTwimgUrl('http://pbs.twimg.com/media/abc.jpg')).toBe(
-      false,
-    );
+    expect(isAllowedTwimgUrl('http://pbs.twimg.com/media/abc.jpg')).toBe(false);
   });
 });

@@ -1,20 +1,21 @@
+import type { Shot } from '@signets/shared';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
+import { AnimatePresence } from 'motion/react';
 import { useMemo, useState } from 'react';
 
-import type { Shot } from '@signets/shared';
+import type { ViewMode } from '@/lib/library-search-params';
 
 import { HomeChrome } from '@/components/home-chrome';
 import { ShotCanvas } from '@/components/shot-canvas';
 import { ShotFocus } from '@/components/shot-focus';
 import { ShotGallery } from '@/components/shot-gallery';
-import type { ViewMode } from '@/lib/library-search-params';
-import { AnimatePresence } from 'motion/react';
 
 import { mockAuthors, mockShots } from '../fixtures/shots';
 
 function HomePagePreview() {
   const [search, setSearch] = useState('');
-  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+  const [selectedAuthor, setSelectedAuthor] = useState<null | string>(null);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [density, setDensity] = useState(55);
   const [viewMode, setViewMode] = useState<ViewMode>('wall');
@@ -107,11 +108,11 @@ function HomePagePreview() {
 }
 
 const meta = {
-  title: 'Pages/Home/Full page',
   component: HomePagePreview,
   parameters: {
     layout: 'fullscreen',
   },
+  title: 'Pages/Home/Full page',
 } satisfies Meta<typeof HomePagePreview>;
 
 export default meta;

@@ -246,8 +246,8 @@ describe('tileInRect', () => {
     expect(
       tileInRect({ height: 50, left: 500, top: 120, width: 50 }, rect),
     ).toBe(false);
-    expect(
-      tileInRect({ height: 20, left: 120, top: 0, width: 20 }, rect),
-    ).toBe(false);
+    expect(tileInRect({ height: 20, left: 120, top: 0, width: 20 }, rect)).toBe(
+      false,
+    );
   });
 });

@@ -36,17 +36,7 @@ export const shotIdParamSchema = z.object({
 
 export type ShotIdParam = z.infer<typeof shotIdParamSchema>;
 
-export function encodeShotCursor(cursor: ShotCursor): string {
-  const json = JSON.stringify(cursor);
-  const bytes = new TextEncoder().encode(json);
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-export function decodeShotCursor(encoded: string): ShotCursor | null {
+export function decodeShotCursor(encoded: string): null | ShotCursor {
   try {
     const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
@@ -60,16 +50,24 @@ export function decodeShotCursor(encoded: string): ShotCursor | null {
   }
 }
 
+export function encodeShotCursor(cursor: ShotCursor): string {
+  const json = JSON.stringify(cursor);
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 const listShotsQueryBaseSchema = z.object({
   author: z.string().optional(),
   cursor: z.string().optional(),
   favorites: z.enum(['true']).optional(),
-  limit: z.coerce
-    .number()
-    .int()
-    .positive()
-    .max(SHOTS_PAGE_SIZE_MAX)
-    .optional(),
+  limit: z.coerce.number().int().positive().max(SHOTS_PAGE_SIZE_MAX).optional(),
   search: z.string().optional(),
 });
 
@@ -114,12 +112,10 @@ export type ListShotAuthorsQuery = {
 };
 
 export const listShotAuthorsQueryParsedSchema =
-  listShotAuthorsQuerySchema.transform(
-    (query): ListShotAuthorsQuery => ({
-      favorites: query.favorites === 'true' ? true : undefined,
-      search: query.search,
-    }),
-  );
+  listShotAuthorsQuerySchema.transform((query): ListShotAuthorsQuery => ({
+    favorites: query.favorites === 'true' ? true : undefined,
+    search: query.search,
+  }));
 
 export const listShotsResponseSchema = z.object({
   items: z.array(shotSchema),
@@ -135,6 +131,15 @@ export type ListShotAuthorsResponse = z.infer<
   typeof listShotAuthorsResponseSchema
 >;
 
+export function parseListShotAuthorsQuery(
+  query: z.infer<typeof listShotAuthorsQuerySchema>,
+): ListShotAuthorsQuery {
+  return {
+    favorites: query.favorites === 'true' ? true : undefined,
+    search: query.search,
+  };
+}
+
 export function parseListShotsQuery(
   query: z.infer<typeof listShotsQuerySchema>,
 ): ListShotsQuery {
@@ -143,15 +148,6 @@ export function parseListShotsQuery(
     cursor: query.cursor,
     favorites: query.favorites === 'true' ? true : undefined,
     limit: query.limit,
-    search: query.search,
-  };
-}
-
-export function parseListShotAuthorsQuery(
-  query: z.infer<typeof listShotAuthorsQuerySchema>,
-): ListShotAuthorsQuery {
-  return {
-    favorites: query.favorites === 'true' ? true : undefined,
     search: query.search,
   };
 }

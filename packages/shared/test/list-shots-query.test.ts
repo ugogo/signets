@@ -38,9 +38,13 @@ describe('shot cursor helpers', () => {
 
   it('returns null for invalid cursor input', () => {
     expect(decodeShotCursor('not-a-cursor')).toBeNull();
-    expect(decodeShotCursor(encodeShotCursor({
-      bookmarkedAt: '2026-01-15T12:00:00.000Z',
-      id: 'not-a-uuid',
-    }))).toBeNull();
+    expect(
+      decodeShotCursor(
+        encodeShotCursor({
+          bookmarkedAt: '2026-01-15T12:00:00.000Z',
+          id: 'not-a-uuid',
+        }),
+      ),
+    ).toBeNull();
   });
 });

@@ -115,6 +115,10 @@ function Home() {
     await navigator.clipboard.writeText(window.location.href);
   }, []);
 
+  const handleFetchNextPage = useCallback(() => {
+    void fetchNextPage();
+  }, [fetchNextPage]);
+
   const gallery = (
     <AnimatePresence mode="wait">
       {isCanvas ? (
@@ -128,7 +132,7 @@ function Home() {
         >
           <ShotCanvas
             error={error}
-            fetchNextPage={fetchNextPage}
+            fetchNextPage={handleFetchNextPage}
             focusedShot={focusedShot}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
@@ -154,7 +158,7 @@ function Home() {
             favoritePendingId={
               toggleFavorite.isPending ? toggleFavorite.variables : null
             }
-            fetchNextPage={fetchNextPage}
+            fetchNextPage={handleFetchNextPage}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
@@ -173,7 +177,7 @@ function Home() {
     <HomeChrome
       authors={authors}
       canCurate={canCurate}
-      curationToken={tokenDraft || token || ''}
+      curationToken={tokenDraft ?? token ?? ''}
       density={density}
       favoritesOnly={favorites}
       isCanvas={isCanvas}
@@ -193,7 +197,7 @@ function Home() {
         void setFilters({ favorites: nextFavoritesOnly });
       }}
       onSaveCurationToken={() => {
-        saveToken(tokenDraft || token || '');
+        saveToken(tokenDraft ?? token ?? '');
         setTokenDraft('');
       }}
       onSearchChange={(nextSearch) => {

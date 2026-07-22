@@ -1,9 +1,35 @@
 import type { Shot } from '@signets/shared';
+
 import { shotSchema } from '@signets/shared';
 
 import { getCurationToken } from './curation-token';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+
+export async function deleteShot(id: string): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/shots/${id}`, {
+    headers: authHeaders(),
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+}
+
+export async function toggleShotFavorite(id: string): Promise<Shot> {
+  const response = await fetch(`${apiBaseUrl}/shots/${id}/favorite`, {
+    headers: authHeaders(),
+    method: 'PATCH',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body: unknown = await response.json();
+  return shotSchema.parse(body);
+}
 
 function authHeaders(): HeadersInit {
   const token = getCurationToken();
@@ -30,29 +56,4 @@ async function readErrorMessage(response: Response): Promise<string> {
   }
 
   return response.statusText || `Request failed (${response.status})`;
-}
-
-export async function toggleShotFavorite(id: string): Promise<Shot> {
-  const response = await fetch(`${apiBaseUrl}/shots/${id}/favorite`, {
-    headers: authHeaders(),
-    method: 'PATCH',
-  });
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
-  }
-
-  const body: unknown = await response.json();
-  return shotSchema.parse(body);
-}
-
-export async function deleteShot(id: string): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}/shots/${id}`, {
-    headers: authHeaders(),
-    method: 'DELETE',
-  });
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
-  }
 }

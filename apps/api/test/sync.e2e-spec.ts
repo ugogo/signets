@@ -36,7 +36,9 @@ describeE2e('Sync and shots (e2e)', () => {
   });
 
   it('lists shots publicly', async () => {
-    const response = await request(app.getHttpServer()).get('/shots').expect(200);
+    const response = await request(app.getHttpServer())
+      .get('/shots')
+      .expect(200);
 
     expect(response.body).toEqual(
       expect.objectContaining({
@@ -55,9 +57,9 @@ describeE2e('Sync and shots (e2e)', () => {
 
     expect(response.body).toEqual(
       expect.objectContaining({
-        statusCode: 400,
         error: 'Validation failed',
         issues: expect.any(Array),
+        statusCode: 400,
       }),
     );
   });

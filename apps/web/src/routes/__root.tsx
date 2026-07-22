@@ -7,7 +7,6 @@ import {
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
-
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
 
@@ -18,7 +17,6 @@ import appCss from '../styles.css?url';
 
 export const Route = createRootRoute({
   component: RootDocument,
-  notFoundComponent: NotFound,
   head: () => ({
     links: [
       {
@@ -39,6 +37,7 @@ export const Route = createRootRoute({
       },
     ],
   }),
+  notFoundComponent: NotFound,
 });
 
 function RootDocument() {

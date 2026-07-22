@@ -1,15 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Slider } from 'pickle-ui/slider';
 
 const meta = {
-  title: 'Components/Slider',
-  component: Slider,
   args: {
     className: 'w-64',
     defaultValue: [55],
     max: 100,
     min: 0,
   },
+  component: Slider,
+  title: 'Components/Slider',
 } satisfies Meta<typeof Slider>;
 
 export default meta;

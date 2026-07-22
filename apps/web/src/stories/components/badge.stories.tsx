@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Badge } from 'pickle-ui/badge';
 
 const meta = {
-  title: 'Components/Badge',
-  component: Badge,
   args: {
     children: '12 shots',
   },
+  component: Badge,
+  title: 'Components/Badge',
 } satisfies Meta<typeof Badge>;
 
 export default meta;
@@ -22,7 +23,7 @@ export const Default: Story = {};
 
 export const Outline: Story = {
   args: {
-    variant: 'outline',
     children: 'Favorites',
+    variant: 'outline',
   },
 };

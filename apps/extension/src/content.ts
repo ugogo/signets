@@ -1,9 +1,9 @@
 import type { SyncShotInput } from '@signets/shared';
 
 import {
+  type BookmarksRequestParams,
   buildBookmarksRequestUrl,
   extractBottomCursor,
-  type BookmarksRequestParams,
 } from './bookmarks-api.js';
 import {
   countTimelineEntries,
@@ -37,53 +37,19 @@ let lastBottomCursor: string | undefined;
 let capturedRequestParams: BookmarksRequestParams | undefined;
 let reachedLastBookmarkSync = false;
 
-function isTrustedBridgeSecret(value: unknown): value is string {
-  return typeof value === 'string' && value === BRIDGE_SECRET;
-}
-
-function readTrustedRequestParams(
-  detail: unknown,
-): BookmarksRequestParams | undefined {
-  if (!detail || typeof detail !== 'object' || !('bridgeSecret' in detail)) {
-    return undefined;
+function addCapturedShots(shots: SyncShotInput[]): void {
+  for (const shot of shots) {
+    if (!capturedShots.some((existing) => existing.mediaId === shot.mediaId)) {
+      capturedShots.push(shot);
+    }
   }
 
-  const record = detail as BookmarksRequestParams & { bridgeSecret?: string };
-  if (!isTrustedBridgeSecret(record.bridgeSecret)) {
-    return undefined;
-  }
+  updateSyncOverlay(capturedShots.length);
 
-  return record;
-}
-
-function readTrustedBookmarksBody(detail: unknown): unknown | undefined {
-  if (!detail || typeof detail !== 'object' || !('bridgeSecret' in detail)) {
-    return undefined;
-  }
-
-  const record = detail as { body?: unknown; bridgeSecret?: string };
-  if (!isTrustedBridgeSecret(record.bridgeSecret)) {
-    return undefined;
-  }
-
-  return record.body;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function resetCaptureState(
-  lastBookmarkSyncAt?: null | string,
-): void {
-  capturedShots.length = 0;
-  activeLastBookmarkSyncAt = lastBookmarkSyncAt ?? null;
-  bookmarksResponseSeen = false;
-  lastBottomCursor = undefined;
-  capturedRequestParams = undefined;
-  reachedLastBookmarkSync = false;
-  captureAborted = false;
-  captureReady = false;
+  void chrome.runtime.sendMessage({
+    count: capturedShots.length,
+    type: 'shots-captured',
+  });
 }
 
 function emitBookmarksIntercepted(result: {
@@ -100,19 +66,13 @@ function emitBookmarksIntercepted(result: {
   });
 }
 
-function addCapturedShots(shots: SyncShotInput[]): void {
-  for (const shot of shots) {
-    if (!capturedShots.some((existing) => existing.mediaId === shot.mediaId)) {
-      capturedShots.push(shot);
+function flushPendingBookmarkBodies(): void {
+  while (pendingBookmarkBodies.length > 0) {
+    const body = pendingBookmarkBodies.shift();
+    if (body) {
+      processBookmarksBody(body);
     }
   }
-
-  updateSyncOverlay(capturedShots.length);
-
-  void chrome.runtime.sendMessage({
-    count: capturedShots.length,
-    type: 'shots-captured',
-  });
 }
 
 function ingestBookmarksBody(body: unknown): {
@@ -157,17 +117,55 @@ function ingestBookmarksBody(body: unknown): {
   }
 }
 
+function isTrustedBridgeSecret(value: unknown): value is string {
+  return typeof value === 'string' && value === BRIDGE_SECRET;
+}
+
 function processBookmarksBody(body: unknown): void {
   emitBookmarksIntercepted(ingestBookmarksBody(body));
 }
 
-function flushPendingBookmarkBodies(): void {
-  while (pendingBookmarkBodies.length > 0) {
-    const body = pendingBookmarkBodies.shift();
-    if (body) {
-      processBookmarksBody(body);
-    }
+function readTrustedBookmarksBody(detail: unknown): unknown {
+  if (!detail || typeof detail !== 'object' || !('bridgeSecret' in detail)) {
+    return undefined;
   }
+
+  const record = detail as { body?: unknown; bridgeSecret?: string };
+  if (!isTrustedBridgeSecret(record.bridgeSecret)) {
+    return undefined;
+  }
+
+  return record.body;
+}
+
+function readTrustedRequestParams(
+  detail: unknown,
+): BookmarksRequestParams | undefined {
+  if (!detail || typeof detail !== 'object' || !('bridgeSecret' in detail)) {
+    return undefined;
+  }
+
+  const record = detail as BookmarksRequestParams & { bridgeSecret?: string };
+  if (!isTrustedBridgeSecret(record.bridgeSecret)) {
+    return undefined;
+  }
+
+  return record;
+}
+
+function resetCaptureState(lastBookmarkSyncAt?: null | string): void {
+  capturedShots.length = 0;
+  activeLastBookmarkSyncAt = lastBookmarkSyncAt ?? null;
+  bookmarksResponseSeen = false;
+  lastBottomCursor = undefined;
+  capturedRequestParams = undefined;
+  reachedLastBookmarkSync = false;
+  captureAborted = false;
+  captureReady = false;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
@@ -191,77 +189,9 @@ window.addEventListener(BOOKMARKS_REQUEST_EVENT, (event) => {
   }
 });
 
-function waitForRequestParams(timeoutMs: number): Promise<BookmarksRequestParams> {
-  if (capturedRequestParams) {
-    return Promise.resolve(capturedRequestParams);
-  }
-
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      window.removeEventListener(
-        BOOKMARKS_REQUEST_EVENT,
-        listener as EventListener,
-      );
-      reject(new Error('Timed out waiting for bookmarks API request.'));
-    }, timeoutMs);
-
-    const listener = (event: Event) => {
-      const params = readTrustedRequestParams(
-        (event as CustomEvent).detail,
-      );
-      if (!params) {
-        return;
-      }
-
-      window.clearTimeout(timeout);
-      window.removeEventListener(BOOKMARKS_REQUEST_EVENT, listener);
-      resolve(params);
-    };
-
-    window.addEventListener(BOOKMARKS_REQUEST_EVENT, listener);
-  });
-}
-
-async function fetchBookmarksPage(
-  params: BookmarksRequestParams,
-  cursor: string,
-  rateLimitRetries = 0,
-): Promise<unknown> {
-  const response = await fetch(buildBookmarksRequestUrl(params, cursor), {
-    credentials: 'include',
-    headers: params.headers,
-  });
-
-  if (response.status === 429) {
-    if (rateLimitRetries >= MAX_429_RETRIES) {
-      throw new Error('Bookmarks API rate limited too many times.');
-    }
-
-    const retryAfter = Number(response.headers.get('retry-after'));
-    const waitMs =
-      Number.isFinite(retryAfter) && retryAfter > 0
-        ? retryAfter * 1000
-        : 15_000;
-    await sleep(waitMs);
-    return fetchBookmarksPage(params, cursor, rateLimitRetries + 1);
-  }
-
-  if (!response.ok) {
-    throw new Error(`Bookmarks API returned ${response.status}.`);
-  }
-
-  return response.json();
-}
-
 function abortCapture(): void {
   captureAborted = true;
   removeSyncOverlay();
-}
-
-function requestStopCapture(): void {
-  abortCapture();
-  // Notify the background so the side panel reflects the stop immediately.
-  void chrome.runtime.sendMessage({ type: 'stop-sync' }).catch(() => undefined);
 }
 
 async function captureAllBookmarks(
@@ -283,7 +213,11 @@ async function captureAllBookmarks(
       }
     }
 
-    for (let attempt = 0; attempt < 20 && !bookmarksResponseSeen; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < 20 && !bookmarksResponseSeen;
+      attempt += 1
+    ) {
       await sleep(300);
     }
 
@@ -340,6 +274,71 @@ async function captureAllBookmarks(
   } finally {
     removeSyncOverlay();
   }
+}
+
+async function fetchBookmarksPage(
+  params: BookmarksRequestParams,
+  cursor: string,
+  rateLimitRetries = 0,
+): Promise<unknown> {
+  const response = await fetch(buildBookmarksRequestUrl(params, cursor), {
+    credentials: 'include',
+    headers: params.headers,
+  });
+
+  if (response.status === 429) {
+    if (rateLimitRetries >= MAX_429_RETRIES) {
+      throw new Error('Bookmarks API rate limited too many times.');
+    }
+
+    const retryAfter = Number(response.headers.get('retry-after'));
+    const waitMs =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : 15_000;
+    await sleep(waitMs);
+    return fetchBookmarksPage(params, cursor, rateLimitRetries + 1);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Bookmarks API returned ${response.status}.`);
+  }
+
+  return response.json();
+}
+
+function requestStopCapture(): void {
+  abortCapture();
+  // Notify the background so the side panel reflects the stop immediately.
+  void chrome.runtime.sendMessage({ type: 'stop-sync' }).catch(() => undefined);
+}
+
+function waitForRequestParams(
+  timeoutMs: number,
+): Promise<BookmarksRequestParams> {
+  if (capturedRequestParams) {
+    return Promise.resolve(capturedRequestParams);
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+      reject(new Error('Timed out waiting for bookmarks API request.'));
+    }, timeoutMs);
+
+    const listener = (event: Event) => {
+      const params = readTrustedRequestParams((event as CustomEvent).detail);
+      if (!params) {
+        return;
+      }
+
+      window.clearTimeout(timeout);
+      window.removeEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+      resolve(params);
+    };
+
+    window.addEventListener(BOOKMARKS_REQUEST_EVENT, listener);
+  });
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

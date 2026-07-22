@@ -9,9 +9,9 @@ import type { Size } from './use-pan-zoom';
  */
 export function useElementSize(): [
   (node: HTMLElement | null) => void,
-  Size | null,
+  null | Size,
 ] {
-  const [size, setSize] = useState<Size | null>(null);
+  const [size, setSize] = useState<null | Size>(null);
   const observerRef = useRef<null | ResizeObserver>(null);
   const frameRef = useRef(0);
   const pendingRef = useRef<null | Size>(null);

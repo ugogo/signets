@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Input } from 'pickle-ui/input';
 
 const meta = {
-  title: 'Components/Input',
-  component: Input,
   args: {
     placeholder: 'Search caption or author',
   },
+  component: Input,
+  title: 'Components/Input',
 } satisfies Meta<typeof Input>;
 
 export default meta;

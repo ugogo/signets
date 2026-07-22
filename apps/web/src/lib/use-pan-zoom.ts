@@ -8,14 +8,21 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { UI_SPRING } from './motion';
 
-export interface Size {
-  height: number;
-  width: number;
+export interface PanConstraints {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
 }
 
 export interface Point {
   x: number;
   y: number;
+}
+
+export interface Size {
+  height: number;
+  width: number;
 }
 
 export interface Transform {
@@ -24,11 +31,31 @@ export interface Transform {
   y: number;
 }
 
-export interface PanConstraints {
-  bottom: number;
-  left: number;
-  right: number;
-  top: number;
+export function clampScale(scale: number, min: number, max: number): number {
+  return Math.min(Math.max(scale, min), max);
+}
+
+export function clampTranslate(
+  transform: Transform,
+  content: Size,
+  viewport: Size,
+  padding: number,
+): Transform {
+  const x = axisBounds(
+    content.width * transform.scale,
+    viewport.width,
+    padding,
+  );
+  const y = axisBounds(
+    content.height * transform.scale,
+    viewport.height,
+    padding,
+  );
+  return {
+    scale: transform.scale,
+    x: Math.min(Math.max(transform.x, x.min), x.max),
+    y: Math.min(Math.max(transform.y, y.min), y.max),
+  };
 }
 
 /** Scale at which content fills the padded viewport, never upscaling past 1:1. */
@@ -49,10 +76,6 @@ export function computeFitScale(
   return Math.min(scale > 0 ? scale : 1, 1);
 }
 
-export function clampScale(scale: number, min: number, max: number): number {
-  return Math.min(Math.max(scale, min), max);
-}
-
 /**
  * Opening zoom: scale so the (narrow, vertical) content fills the viewport width
  * rather than shrinking to fit its full height. Always at least the contain-fit
@@ -71,42 +94,6 @@ export function computeInitialScale(
   }
   const fillWidth = Math.max(viewport.width - padding * 2, 1) / content.width;
   return clampScale(fillWidth * boost, min, max);
-}
-
-/**
- * Bounds for one axis within a padded viewport: centre the content when it is
- * smaller than the viewport, otherwise let it travel until its edges reach the
- * padding. Returns the inclusive `[min, max]` offset range.
- */
-function axisBounds(
-  scaledContent: number,
-  viewport: number,
-  padding: number,
-): { max: number; min: number } {
-  if (scaledContent + padding * 2 <= viewport) {
-    const centre = (viewport - scaledContent) / 2;
-    return { max: centre, min: centre };
-  }
-  return { max: padding, min: viewport - padding - scaledContent };
-}
-
-export function clampTranslate(
-  transform: Transform,
-  content: Size,
-  viewport: Size,
-  padding: number,
-): Transform {
-  const x = axisBounds(content.width * transform.scale, viewport.width, padding);
-  const y = axisBounds(
-    content.height * transform.scale,
-    viewport.height,
-    padding,
-  );
-  return {
-    scale: transform.scale,
-    x: Math.min(Math.max(transform.x, x.min), x.max),
-    y: Math.min(Math.max(transform.y, y.min), y.max),
-  };
 }
 
 /** Framer-style drag constraints (`{ top, left, right, bottom }`) for a scale. */
@@ -135,23 +122,27 @@ export function zoomAtPoint(
   };
 }
 
+/**
+ * Bounds for one axis within a padded viewport: centre the content when it is
+ * smaller than the viewport, otherwise let it travel until its edges reach the
+ * padding. Returns the inclusive `[min, max]` offset range.
+ */
+function axisBounds(
+  scaledContent: number,
+  viewport: number,
+  padding: number,
+): { max: number; min: number } {
+  if (scaledContent + padding * 2 <= viewport) {
+    const centre = (viewport - scaledContent) / 2;
+    return { max: centre, min: centre };
+  }
+  return { max: padding, min: viewport - padding - scaledContent };
+}
+
 const DEFAULT_PADDING = 96;
 const DEFAULT_MAX_SCALE = 8;
 const WHEEL_ZOOM_INTENSITY = 0.0032;
 const ZOOM_SPRING = UI_SPRING;
-
-export interface UseCanvasViewportOptions {
-  content: Size;
-  /** Multiplier on the width-fill opening zoom (> 1 opens tighter). */
-  initialZoom?: number;
-  maxScale?: number;
-  padding?: number;
-  /** When true, zoom snaps instantly (respects `prefers-reduced-motion`). */
-  reducedMotion?: boolean;
-  /** Changing this re-fits the view (e.g. when filters swap the content). */
-  resetKey?: unknown;
-  viewport: Size | null;
-}
 
 export interface UseCanvasViewport {
   /**
@@ -169,6 +160,19 @@ export interface UseCanvasViewport {
   x: MotionValue<number>;
   y: MotionValue<number>;
   zoomBy: (factor: number, origin?: Point) => void;
+}
+
+export interface UseCanvasViewportOptions {
+  content: Size;
+  /** Multiplier on the width-fill opening zoom (> 1 opens tighter). */
+  initialZoom?: number;
+  maxScale?: number;
+  padding?: number;
+  /** When true, zoom snaps instantly (respects `prefers-reduced-motion`). */
+  reducedMotion?: boolean;
+  /** Changing this re-fits the view (e.g. when filters swap the content). */
+  resetKey?: unknown;
+  viewport: null | Size;
 }
 
 interface ViewportParams {
@@ -267,8 +271,12 @@ export function useCanvasViewport({
 
   const zoomBy = useCallback(
     (factor: number, origin?: Point) => {
-      const { content: c, maxScale: max, padding: p, viewport: v } =
-        paramsRef.current;
+      const {
+        content: c,
+        maxScale: max,
+        padding: p,
+        viewport: v,
+      } = paramsRef.current;
       if (!v || c.width <= 0 || c.height <= 0) {
         return;
       }
@@ -276,7 +284,11 @@ export function useCanvasViewport({
       const nextScale = clampScale(scale.get() * factor, min, max);
       const point = origin ?? { x: v.width / 2, y: v.height / 2 };
       const next = clampTranslate(
-        zoomAtPoint({ scale: scale.get(), x: x.get(), y: y.get() }, nextScale, point),
+        zoomAtPoint(
+          { scale: scale.get(), x: x.get(), y: y.get() },
+          nextScale,
+          point,
+        ),
         c,
         v,
         p,
@@ -349,7 +361,15 @@ export function useCanvasViewport({
         false,
       );
     }
-  }, [applyTransform, content, initialZoom, isReady, maxScale, padding, viewport]);
+  }, [
+    applyTransform,
+    content,
+    initialZoom,
+    isReady,
+    maxScale,
+    padding,
+    viewport,
+  ]);
 
   // Keep the transform valid as content grows (progressive fill) or the
   // viewport resizes — but never fight an in-flight zoom, and only write when a

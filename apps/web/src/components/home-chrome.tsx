@@ -44,7 +44,7 @@ export interface HomeChromeProps {
   onSearchChange: (search: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   search: string;
-  selectedAuthor: string | null;
+  selectedAuthor: null | string;
   shotCount: number;
   viewMode: ViewMode;
 }
@@ -232,14 +232,10 @@ export function HomeChrome({
                     : { height: 'auto', opacity: 1 }
                 }
                 exit={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { height: 0, opacity: 0 }
+                  reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }
                 }
                 initial={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { height: 0, opacity: 0 }
+                  reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }
                 }
                 key="filters-tray"
                 style={{ overflow: 'hidden' }}
@@ -330,7 +326,7 @@ export function HomeChrome({
                               className="min-w-0 flex-1"
                               max={100}
                               min={0}
-                              onValueChange={(value) => {
+                              onValueChange={(value: number | number[]) => {
                                 const next = Array.isArray(value)
                                   ? value[0]
                                   : value;

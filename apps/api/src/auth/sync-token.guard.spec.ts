@@ -1,6 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ExecutionContext } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { SyncTokenGuard } from './sync-token.guard';
 
@@ -20,9 +20,7 @@ describe('SyncTokenGuard', () => {
       get: () => 'secret-token',
     } as unknown as ConfigService);
 
-    expect(
-      guard.canActivate(createContext('Bearer secret-token')),
-    ).toBe(true);
+    expect(guard.canActivate(createContext('Bearer secret-token'))).toBe(true);
   });
 
   it('rejects a missing bearer token', () => {

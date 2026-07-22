@@ -1,5 +1,6 @@
-import type { LogEntry } from './log.js';
 import type { SyncState } from './constants.js';
+import type { LogEntry } from './log.js';
+
 import {
   isBackgroundBroadcast,
   isDryRunResponse,
@@ -9,7 +10,8 @@ import {
 import { normalizeSyncToken } from './settings.js';
 
 const apiUrlInput = document.querySelector<HTMLInputElement>('#apiUrl')!;
-const apiUrlWrapper = document.querySelector<HTMLLabelElement>('#apiUrlWrapper')!;
+const apiUrlWrapper =
+  document.querySelector<HTMLLabelElement>('#apiUrlWrapper')!;
 const syncTokenInput = document.querySelector<HTMLInputElement>('#syncToken')!;
 const envProdButton = document.querySelector<HTMLButtonElement>('#envProd')!;
 const envDevButton = document.querySelector<HTMLButtonElement>('#envDev')!;
@@ -20,42 +22,17 @@ const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const logSection = document.querySelector<HTMLDetailsElement>('#logSection')!;
 const logElement = document.querySelector<HTMLPreElement>('#log')!;
-const dryRunPreview = document.querySelector<HTMLDetailsElement>('#dryRunPreview')!;
+const dryRunPreview =
+  document.querySelector<HTMLDetailsElement>('#dryRunPreview')!;
 const dryRunPayload = document.querySelector<HTMLPreElement>('#dryRunPayload')!;
-const settingsSection = document.querySelector<HTMLDetailsElement>('#settingsSection')!;
-const settingsSummary = document.querySelector<HTMLElement>('#settingsSummary')!;
+const settingsSection =
+  document.querySelector<HTMLDetailsElement>('#settingsSection')!;
+const settingsSummary =
+  document.querySelector<HTMLElement>('#settingsSummary')!;
 document.title = 'Signets Sync';
 
 let apiEnv: 'dev' | 'prod' = 'prod';
 let operationActive = false;
-
-function setApiEnv(env: 'dev' | 'prod'): void {
-  apiEnv = env;
-  const isDev = env === 'dev';
-  apiUrlWrapper.classList.toggle('hidden', !isDev);
-  envProdButton.classList.toggle('active', !isDev);
-  envDevButton.classList.toggle('active', isDev);
-}
-
-function setStatus(
-  message: string,
-  tone: 'default' | 'error' | 'success' = 'default',
-): void {
-  status.textContent = message;
-  status.classList.toggle('status-error', tone === 'error');
-  status.classList.toggle('status-success', tone === 'success');
-}
-
-function updateSettingsSection(hasToken: boolean): void {
-  if (hasToken) {
-    settingsSection.open = false;
-    settingsSummary.textContent = 'Settings · sync token saved';
-    return;
-  }
-
-  settingsSection.open = true;
-  settingsSummary.textContent = 'Settings';
-}
 
 function formatLogTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], {
@@ -65,47 +42,10 @@ function formatLogTime(timestamp: number): string {
   });
 }
 
-function renderLogs(logs: LogEntry[]): void {
-  if (logs.length === 0) {
-    logElement.textContent = 'No activity yet.';
-    return;
-  }
-
-  logElement.replaceChildren();
-  for (const entry of logs) {
-    const line = document.createElement('span');
-    line.className = `log-${entry.level}`;
-    line.textContent = `[${formatLogTime(entry.timestamp)}] ${entry.message}`;
-    logElement.appendChild(line);
-    logElement.appendChild(document.createTextNode('\n'));
-  }
-  logElement.scrollTop = logElement.scrollHeight;
-}
-
-function updateSyncButtons(state: SyncState): void {
-  const inProgress = state !== 'idle';
-  syncButton.classList.toggle('hidden', inProgress);
-  dryRunButton.classList.toggle('hidden', inProgress);
-  stopButton.classList.toggle('hidden', state !== 'scrolling');
-  syncButton.disabled = inProgress;
-  dryRunButton.disabled = inProgress;
-  saveButton.disabled = inProgress;
-
-  if (inProgress) {
-    logSection.open = true;
-  }
-}
-
 function hideDryRunPreview(): void {
   dryRunPreview.classList.add('hidden');
   dryRunPreview.open = false;
   dryRunPayload.textContent = '';
-}
-
-function showDryRunPreview(payload: unknown): void {
-  dryRunPayload.textContent = JSON.stringify(payload, null, 2);
-  dryRunPreview.classList.remove('hidden');
-  dryRunPreview.open = true;
 }
 
 function loadLogs(): void {
@@ -132,6 +72,46 @@ function loadSyncState(): void {
       }
     }
   });
+}
+
+function renderLogs(logs: LogEntry[]): void {
+  if (logs.length === 0) {
+    logElement.textContent = 'No activity yet.';
+    return;
+  }
+
+  logElement.replaceChildren();
+  for (const entry of logs) {
+    const line = document.createElement('span');
+    line.className = `log-${entry.level}`;
+    line.textContent = `[${formatLogTime(entry.timestamp)}] ${entry.message}`;
+    logElement.appendChild(line);
+    logElement.appendChild(document.createTextNode('\n'));
+  }
+  logElement.scrollTop = logElement.scrollHeight;
+}
+
+function setApiEnv(env: 'dev' | 'prod'): void {
+  apiEnv = env;
+  const isDev = env === 'dev';
+  apiUrlWrapper.classList.toggle('hidden', !isDev);
+  envProdButton.classList.toggle('active', !isDev);
+  envDevButton.classList.toggle('active', isDev);
+}
+
+function setStatus(
+  message: string,
+  tone: 'default' | 'error' | 'success' = 'default',
+): void {
+  status.textContent = message;
+  status.classList.toggle('status-error', tone === 'error');
+  status.classList.toggle('status-success', tone === 'success');
+}
+
+function showDryRunPreview(payload: unknown): void {
+  dryRunPayload.textContent = JSON.stringify(payload, null, 2);
+  dryRunPreview.classList.remove('hidden');
+  dryRunPreview.open = true;
 }
 
 function startCapture(options: {
@@ -163,6 +143,31 @@ function startCapture(options: {
   }
 
   begin();
+}
+
+function updateSettingsSection(hasToken: boolean): void {
+  if (hasToken) {
+    settingsSection.open = false;
+    settingsSummary.textContent = 'Settings · sync token saved';
+    return;
+  }
+
+  settingsSection.open = true;
+  settingsSummary.textContent = 'Settings';
+}
+
+function updateSyncButtons(state: SyncState): void {
+  const inProgress = state !== 'idle';
+  syncButton.classList.toggle('hidden', inProgress);
+  dryRunButton.classList.toggle('hidden', inProgress);
+  stopButton.classList.toggle('hidden', state !== 'scrolling');
+  syncButton.disabled = inProgress;
+  dryRunButton.disabled = inProgress;
+  saveButton.disabled = inProgress;
+
+  if (inProgress) {
+    logSection.open = true;
+  }
 }
 
 envProdButton.addEventListener('click', () => {

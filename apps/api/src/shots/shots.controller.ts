@@ -1,3 +1,9 @@
+import type {
+  ListShotAuthorsQuery,
+  ListShotsQuery,
+  ShotIdParam,
+} from '@signets/shared';
+
 import {
   Controller,
   Delete,
@@ -9,11 +15,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type {
-  ListShotAuthorsQuery,
-  ListShotsQuery,
-  ShotIdParam,
-} from '@signets/shared';
 import {
   listShotAuthorsQueryParsedSchema,
   listShotsQueryParsedSchema,
@@ -58,9 +59,7 @@ export class ShotsController {
   @Patch(':id/favorite')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UseGuards(SyncTokenGuard)
-  async toggleFavorite(
-    @Param(zodPipe(shotIdParamSchema)) params: ShotIdParam,
-  ) {
+  async toggleFavorite(@Param(zodPipe(shotIdParamSchema)) params: ShotIdParam) {
     const shot = await this.shotsService.toggleFavorite(params.id);
     if (!shot) {
       throw new NotFoundException('Shot not found');

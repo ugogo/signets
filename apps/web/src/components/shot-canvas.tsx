@@ -1,6 +1,6 @@
 import type { Shot } from '@signets/shared';
-import { CANVAS_PREFETCH_MAX_SHOTS } from '@signets/shared';
 
+import { CANVAS_PREFETCH_MAX_SHOTS } from '@signets/shared';
 import { Maximize2, Minus, Plus } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
@@ -15,9 +15,9 @@ import {
   useState,
 } from 'react';
 
-import { shotPosterSource } from '../lib/shot-media';
 import { computeMasonryLayout, FALLBACK_ASPECT } from '../lib/canvas-grid';
 import { OPACITY_CROSSFADE } from '../lib/motion';
+import { shotPosterSource } from '../lib/shot-media';
 import { useElementSize } from '../lib/use-element-size';
 import { useCanvasViewport } from '../lib/use-pan-zoom';
 import { tileInRect, useVisibleRect } from '../lib/use-visible-rect';
@@ -110,7 +110,7 @@ export function ShotCanvas({
     for (let index = 0; index < count; index += 1) {
       const shot = shots[index];
       list.push(
-        shot && shot.width && shot.height
+        shot?.width && shot?.height
           ? shot.width / shot.height
           : FALLBACK_ASPECT,
       );
@@ -160,7 +160,8 @@ export function ShotCanvas({
   // Coarse thumbnail tier, flipped only when scale crosses the threshold.
   const [highRes, setHighRes] = useState(false);
   useEffect(() => {
-    const update = (value: number) => setHighRes(value >= MEDIUM_THUMBNAIL_SCALE);
+    const update = (value: number) =>
+      setHighRes(value >= MEDIUM_THUMBNAIL_SCALE);
     update(scale.get());
     return scale.on('change', update);
   }, [scale]);
@@ -220,19 +221,19 @@ export function ShotCanvas({
         return;
       }
       switch (event.key) {
-        case '-':
-        case '_':
+        case '0':
           event.preventDefault();
-          zoomBy(1 / ZOOM_STEP);
+          fitToView();
           break;
         case '+':
         case '=':
           event.preventDefault();
           zoomBy(ZOOM_STEP);
           break;
-        case '0':
+        case '-':
+        case '_':
           event.preventDefault();
-          fitToView();
+          zoomBy(1 / ZOOM_STEP);
           break;
         case 'ArrowDown':
           event.preventDefault();

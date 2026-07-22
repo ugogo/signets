@@ -6,9 +6,9 @@ export const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
-  USER_SLUG: z.string().min(1).default('default'),
   PORT: z.coerce.number().int().positive().default(3001),
   SYNC_TOKEN: z.string().min(16),
+  USER_SLUG: z.string().min(1).default('default'),
   WEB_ORIGIN: z.string().min(1),
 });
 

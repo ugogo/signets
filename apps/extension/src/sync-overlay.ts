@@ -22,57 +22,13 @@ const OVERLAY_STYLE = [
   'z-index:2147483647',
 ].join(';');
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-function overlayTransition(reducedMotion: boolean): string {
-  const duration = reducedMotion ? `${ENTER_MS}ms` : `${ENTER_MS}ms`;
-  const properties = reducedMotion
-    ? `opacity ${duration} ${EASE_OUT}`
-    : `opacity ${duration} ${EASE_OUT}, transform ${duration} ${EASE_OUT}`;
-  return properties;
-}
-
-function setOverlayHidden(overlay: HTMLElement, reducedMotion: boolean): void {
-  overlay.style.opacity = '0';
-  if (!reducedMotion) {
-    overlay.style.transform = 'translateY(-8px)';
-  }
-}
-
-function setOverlayVisible(overlay: HTMLElement, reducedMotion: boolean): void {
-  overlay.style.opacity = '1';
-  if (!reducedMotion) {
-    overlay.style.transform = 'translateY(0)';
-  }
-}
-
-function removeOverlayElement(
-  overlay: HTMLElement,
-  animated: boolean,
-): void {
-  if (!animated) {
-    overlay.remove();
+export function removeSyncOverlay(animated = true): void {
+  const overlay = document.getElementById(OVERLAY_ID);
+  if (!overlay) {
     return;
   }
 
-  const reducedMotion = prefersReducedMotion();
-  const duration = reducedMotion ? ENTER_MS : EXIT_MS;
-  overlay.style.transition = overlayTransition(reducedMotion);
-  setOverlayHidden(overlay, reducedMotion);
-
-  let removed = false;
-  const finish = () => {
-    if (removed) {
-      return;
-    }
-    removed = true;
-    overlay.remove();
-  };
-
-  overlay.addEventListener('transitionend', finish, { once: true });
-  window.setTimeout(finish, duration + 50);
+  removeOverlayElement(overlay, animated);
 }
 
 export function showSyncOverlay(onStop: () => void): void {
@@ -121,11 +77,52 @@ export function updateSyncOverlay(count: number): void {
   countElement.textContent = `${count} shot${count === 1 ? '' : 's'}`;
 }
 
-export function removeSyncOverlay(animated = true): void {
-  const overlay = document.getElementById(OVERLAY_ID);
-  if (!overlay) {
+function overlayTransition(reducedMotion: boolean): string {
+  const duration = reducedMotion ? `${ENTER_MS}ms` : `${ENTER_MS}ms`;
+  const properties = reducedMotion
+    ? `opacity ${duration} ${EASE_OUT}`
+    : `opacity ${duration} ${EASE_OUT}, transform ${duration} ${EASE_OUT}`;
+  return properties;
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function removeOverlayElement(overlay: HTMLElement, animated: boolean): void {
+  if (!animated) {
+    overlay.remove();
     return;
   }
 
-  removeOverlayElement(overlay, animated);
+  const reducedMotion = prefersReducedMotion();
+  const duration = reducedMotion ? ENTER_MS : EXIT_MS;
+  overlay.style.transition = overlayTransition(reducedMotion);
+  setOverlayHidden(overlay, reducedMotion);
+
+  let removed = false;
+  const finish = () => {
+    if (removed) {
+      return;
+    }
+    removed = true;
+    overlay.remove();
+  };
+
+  overlay.addEventListener('transitionend', finish, { once: true });
+  window.setTimeout(finish, duration + 50);
+}
+
+function setOverlayHidden(overlay: HTMLElement, reducedMotion: boolean): void {
+  overlay.style.opacity = '0';
+  if (!reducedMotion) {
+    overlay.style.transform = 'translateY(-8px)';
+  }
+}
+
+function setOverlayVisible(overlay: HTMLElement, reducedMotion: boolean): void {
+  overlay.style.opacity = '1';
+  if (!reducedMotion) {
+    overlay.style.transform = 'translateY(0)';
+  }
 }

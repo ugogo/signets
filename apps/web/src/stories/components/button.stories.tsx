@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Button } from 'pickle-ui/button';
 
 const meta = {
-  title: 'Components/Button',
-  component: Button,
   args: {
     children: 'Click me',
   },
+  component: Button,
+  title: 'Components/Button',
 } satisfies Meta<typeof Button>;
 
 export default meta;
@@ -16,21 +17,21 @@ export const Default: Story = {};
 
 export const Secondary: Story = {
   args: {
-    variant: 'secondary',
     children: 'Secondary',
+    variant: 'secondary',
   },
 };
 
 export const Outline: Story = {
   args: {
-    variant: 'outline',
     children: 'Outline',
+    variant: 'outline',
   },
 };
 
 export const Disabled: Story = {
   args: {
-    disabled: true,
     children: 'Disabled',
+    disabled: true,
   },
 };

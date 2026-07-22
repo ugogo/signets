@@ -3,17 +3,17 @@ import type { Size } from './use-pan-zoom';
 /** Aspect ratio (width / height) used for tiles whose real size is unknown. */
 export const FALLBACK_ASPECT = 4 / 5;
 
+export interface MasonryLayout {
+  columns: number;
+  content: Size;
+  tiles: PlacedTile[];
+}
+
 export interface PlacedTile {
   height: number;
   left: number;
   top: number;
   width: number;
-}
-
-export interface MasonryLayout {
-  columns: number;
-  content: Size;
-  tiles: PlacedTile[];
 }
 
 /**

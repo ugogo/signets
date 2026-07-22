@@ -1,10 +1,11 @@
+import type { ZodType } from 'zod';
+
 import {
   HttpException,
   HttpStatus,
   Injectable,
   type PipeTransform,
 } from '@nestjs/common';
-import type { ZodType } from 'zod';
 
 import { validationErrorEnvelope } from './validation-error.js';
 

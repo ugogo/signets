@@ -34,10 +34,7 @@ export const syncShotInputSchema = z
       });
     }
 
-    if (
-      shot.mediaPosterUrl &&
-      !isAllowedTwimgUrl(shot.mediaPosterUrl)
-    ) {
+    if (shot.mediaPosterUrl && !isAllowedTwimgUrl(shot.mediaPosterUrl)) {
       ctx.addIssue({
         code: 'custom',
         message: 'mediaPosterUrl must be an X twimg HTTPS URL',

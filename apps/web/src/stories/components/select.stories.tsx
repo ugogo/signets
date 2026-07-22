@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Select } from 'pickle-ui/select';
 
 import { mockAuthors } from '../fixtures/shots';
@@ -22,8 +23,8 @@ function AuthorSelect({ value = '' }: { value?: string }) {
 }
 
 const meta = {
-  title: 'Components/Select',
   component: AuthorSelect,
+  title: 'Components/Select',
 } satisfies Meta<typeof AuthorSelect>;
 
 export default meta;

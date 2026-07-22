@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Card } from 'pickle-ui/card';
 import { Text } from 'pickle-ui/text';
 
@@ -19,8 +20,8 @@ function ExampleCard() {
 }
 
 const meta = {
-  title: 'Components/Card',
   component: ExampleCard,
+  title: 'Components/Card',
 } satisfies Meta<typeof ExampleCard>;
 
 export default meta;

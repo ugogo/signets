@@ -1,5 +1,5 @@
 {
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", ".storybook/**/*.ts", ".storybook/**/*.tsx", "vite.config.ts", "vitest.shims.d.ts"],
   "compilerOptions": {
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",

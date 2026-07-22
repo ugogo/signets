@@ -1,10 +1,7 @@
-import {
-  createStandardSchemaV1,
-  createParser,
-} from 'nuqs';
+import { createParser, createStandardSchemaV1 } from 'nuqs';
 import { z } from 'zod';
 
-export type ViewMode = 'wall' | 'canvas';
+export type ViewMode = 'canvas' | 'wall';
 
 export const DEFAULT_DENSITY = 55;
 export const DEFAULT_VIEW_MODE: ViewMode = 'wall';
@@ -36,7 +33,9 @@ export const librarySearchParamsPartialSchema = librarySearchParamsSchema
   });
 
 function fieldParser<T>(schema: {
-  safeParse: (value: unknown) => { success: true; data: T } | { success: false };
+  safeParse: (
+    value: unknown,
+  ) => { data: T; success: true } | { success: false };
 }) {
   return createParser({
     parse(value) {
@@ -51,9 +50,9 @@ function fieldParser<T>(schema: {
 
 export const librarySearchParams = {
   author: fieldParser(librarySearchParamsPartialSchema.shape.author),
-  density: fieldParser(librarySearchParamsPartialSchema.shape.density).withDefault(
-    DEFAULT_DENSITY,
-  ),
+  density: fieldParser(
+    librarySearchParamsPartialSchema.shape.density,
+  ).withDefault(DEFAULT_DENSITY),
   favorites: fieldParser(
     librarySearchParamsPartialSchema.shape.favorites,
   ).withDefault(false),

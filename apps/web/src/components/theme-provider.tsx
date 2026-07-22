@@ -1,11 +1,11 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from 'react';
 
 import {
@@ -13,8 +13,8 @@ import {
   getStoredTheme,
   getSystemTheme,
   resolveTheme,
-  THEME_STORAGE_KEY,
   type Theme,
+  THEME_STORAGE_KEY,
 } from '../lib/theme';
 
 interface ThemeContextValue {
@@ -23,7 +23,7 @@ interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+const ThemeContext = createContext<null | ThemeContextValue>(null);
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -31,8 +31,8 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() =>
-    defaultTheme ?? resolveTheme(getStoredTheme()),
+  const [theme, setThemeState] = useState<Theme>(
+    () => defaultTheme ?? resolveTheme(getStoredTheme()),
   );
 
   const setTheme = useCallback((next: Theme) => {

@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/react-vite';
+
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +25,6 @@ const blockedPluginFragments = [
 ];
 
 const config: StorybookConfig = {
-  stories: ['../src/stories/**/*.stories.@(ts|tsx)'],
   addons: [
     '@chromatic-com/storybook',
     '@storybook/addon-a11y',
@@ -32,10 +32,13 @@ const config: StorybookConfig = {
     '@storybook/addon-mcp',
   ],
   framework: '@storybook/react-vite',
-  async viteFinal(viteConfig) {
+  stories: ['../src/stories/**/*.stories.@(ts|tsx)'],
+  viteFinal(viteConfig) {
     const plugins = (viteConfig.plugins ?? []).flat().filter((plugin) => {
       const name = getPluginName(plugin);
-      return !blockedPluginFragments.some((fragment) => name.includes(fragment));
+      return !blockedPluginFragments.some((fragment) =>
+        name.includes(fragment),
+      );
     });
 
     if (

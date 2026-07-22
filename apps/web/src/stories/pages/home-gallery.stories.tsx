@@ -5,11 +5,11 @@ import { ShotGallery } from '@/components/shot-gallery';
 import { emptyShots, mockShots } from '../fixtures/shots';
 
 const meta = {
-  title: 'Pages/Home/Gallery',
   component: ShotGallery,
   parameters: {
     layout: 'fullscreen',
   },
+  title: 'Pages/Home/Gallery',
 } satisfies Meta<typeof ShotGallery>;
 
 export default meta;

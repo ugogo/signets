@@ -13,10 +13,7 @@ import {
 } from 'react';
 
 import { REDUCED_MOTION_FADE, UI_SPRING } from '../lib/motion';
-import {
-  shotFocusSource,
-  shotPostUrl,
-} from '../lib/shot-media';
+import { shotFocusSource, shotPostUrl } from '../lib/shot-media';
 import { cn } from '../lib/utils';
 import { MotionShotBadge, MotionShotFocusMedia } from './motion-shot-media';
 
@@ -28,7 +25,7 @@ interface ShotFocusProps {
   onDelete?: () => void;
   onDismiss: () => void;
   onToggleFavorite?: () => void;
-  selectedAuthor?: string | null;
+  selectedAuthor?: null | string;
   shot: Shot;
 }
 

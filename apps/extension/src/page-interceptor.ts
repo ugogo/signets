@@ -4,50 +4,6 @@ import {
   BOOKMARKS_RESPONSE_EVENT,
 } from './constants.js';
 
-function isBookmarksApiUrl(requestUrl: string): boolean {
-  return (
-    /\/Bookmarks(?:\?|$)/i.test(requestUrl) ||
-    /BookmarkSearchTimeline/i.test(requestUrl)
-  );
-}
-
-function resolveRequestUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') {
-    return input;
-  }
-
-  if (input instanceof URL) {
-    return input.toString();
-  }
-
-  return input.url;
-}
-
-function collectFetchHeaders(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Record<string, string> {
-  const headers = new Headers();
-
-  if (input instanceof Request) {
-    input.headers.forEach((value, key) => {
-      headers.set(key, value);
-    });
-  }
-
-  if (init?.headers) {
-    new Headers(init.headers).forEach((value, key) => {
-      headers.set(key, value);
-    });
-  }
-
-  const result: Record<string, string> = {};
-  headers.forEach((value, key) => {
-    result[key] = value;
-  });
-  return result;
-}
-
 export function installPageInterceptor(bridgeSecret: string): void {
   if (!bridgeSecret) {
     return;
@@ -125,8 +81,8 @@ export function installPageInterceptor(bridgeSecret: string): void {
         method: string,
         url: string | URL,
         async?: boolean,
-        username?: string | null,
-        password?: string | null,
+        username?: null | string,
+        password?: null | string,
       ) {
         requestUrl = typeof url === 'string' ? url : url.toString();
         return originalOpen(method, url, async ?? true, username, password);
@@ -167,4 +123,48 @@ export function installPageInterceptor(bridgeSecret: string): void {
 
   patchFetch();
   patchXhr();
+}
+
+function collectFetchHeaders(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Record<string, string> {
+  const headers = new Headers();
+
+  if (input instanceof Request) {
+    input.headers.forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  if (init?.headers) {
+    new Headers(init.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+}
+
+function isBookmarksApiUrl(requestUrl: string): boolean {
+  return (
+    /\/Bookmarks(?:\?|$)/i.test(requestUrl) ||
+    /BookmarkSearchTimeline/i.test(requestUrl)
+  );
+}
+
+function resolveRequestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
 }

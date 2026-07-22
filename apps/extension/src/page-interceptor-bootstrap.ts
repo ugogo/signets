@@ -1,5 +1,3 @@
-import { installPageInterceptor } from './page-interceptor.js';
-
 declare const __SIGNETS_PAGE_INTERCEPTOR_IMPL__: string;
 
 const BRIDGE_SECRET = crypto.randomUUID();

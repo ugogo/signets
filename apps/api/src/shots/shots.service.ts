@@ -1,5 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { Prisma, Shot as PrismaShot } from '@prisma/client';
 import type {
   ListShotAuthorsQuery,
@@ -8,11 +6,15 @@ import type {
   Shot,
   ShotCursor,
 } from '@signets/shared';
+
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   decodeShotCursor,
   encodeShotCursor,
   SHOTS_PAGE_SIZE,
 } from '@signets/shared';
+
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -83,7 +85,20 @@ export class ShotsService {
     return groups.map((group) => group.authorHandle);
   }
 
-  async toggleFavorite(id: string): Promise<Shot | null> {
+  async remove(id: string): Promise<boolean> {
+    const user = await this.getUser();
+    if (!user) {
+      return false;
+    }
+
+    const deleted = await this.prisma.shot.deleteMany({
+      where: { id, userId: user.id },
+    });
+
+    return deleted.count > 0;
+  }
+
+  async toggleFavorite(id: string): Promise<null | Shot> {
     const user = await this.getUser();
     if (!user) {
       return null;
@@ -98,54 +113,6 @@ export class ShotsService {
 
     const updated = rows[0];
     return updated ? toShotDto(updated) : null;
-  }
-
-  async remove(id: string): Promise<boolean> {
-    const user = await this.getUser();
-    if (!user) {
-      return false;
-    }
-
-    const deleted = await this.prisma.shot.deleteMany({
-      where: { id, userId: user.id },
-    });
-
-    return deleted.count > 0;
-  }
-
-  private parseCursor(cursor: string | undefined): ShotCursor | undefined {
-    if (!cursor) {
-      return undefined;
-    }
-
-    return decodeShotCursor(cursor) ?? undefined;
-  }
-
-  private buildShotWhere(
-    userId: string,
-    filters: ListShotsQuery | ListShotAuthorsQuery,
-  ): Prisma.ShotWhereInput {
-    const where: Prisma.ShotWhereInput = {
-      userId,
-    };
-
-    if (filters.favorites === true) {
-      where.isFavorite = true;
-    }
-
-    if ('author' in filters && filters.author) {
-      where.authorHandle = filters.author;
-    }
-
-    if (filters.search) {
-      where.OR = [
-        { caption: { contains: filters.search, mode: 'insensitive' } },
-        { authorHandle: { contains: filters.search, mode: 'insensitive' } },
-        { authorName: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
-
-    return where;
   }
 
   private applyCursor(
@@ -170,10 +137,45 @@ export class ShotsService {
     };
   }
 
+  private buildShotWhere(
+    userId: string,
+    filters: ListShotAuthorsQuery | ListShotsQuery,
+  ): Prisma.ShotWhereInput {
+    const where: Prisma.ShotWhereInput = {
+      userId,
+    };
+
+    if (filters.favorites === true) {
+      where.isFavorite = true;
+    }
+
+    if ('author' in filters && filters.author) {
+      where.authorHandle = filters.author;
+    }
+
+    if (filters.search) {
+      where.OR = [
+        { caption: { contains: filters.search, mode: 'insensitive' } },
+        { authorHandle: { contains: filters.search, mode: 'insensitive' } },
+        { authorName: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    return where;
+  }
+
   private async getUser() {
     return this.prisma.user.findUnique({
       where: { slug: this.userSlug },
     });
+  }
+
+  private parseCursor(cursor: string | undefined): ShotCursor | undefined {
+    if (!cursor) {
+      return undefined;
+    }
+
+    return decodeShotCursor(cursor) ?? undefined;
   }
 }
 

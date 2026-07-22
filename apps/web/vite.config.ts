@@ -8,19 +8,6 @@ import { defineConfig } from 'vite';
 const isStorybook = process.env.STORYBOOK === 'true';
 
 const config = defineConfig(({ mode }) => ({
-  plugins: [
-    ...(!isStorybook ? [devtools()] : []),
-    ...(!isStorybook && mode !== 'test'
-      ? [cloudflare({ viteEnvironment: { name: 'ssr' } })]
-      : []),
-    tailwindcss(),
-    ...(!isStorybook ? [tanstackStart()] : []),
-    viteReact(),
-  ],
-  resolve: {
-    tsconfigPaths: true,
-    dedupe: ['react', 'react-dom'],
-  },
   optimizeDeps: {
     include: [
       'pickle-ui/badge',
@@ -32,6 +19,19 @@ const config = defineConfig(({ mode }) => ({
       'pickle-ui/slider',
       'pickle-ui/text',
     ],
+  },
+  plugins: [
+    ...(!isStorybook ? [devtools()] : []),
+    ...(!isStorybook && mode !== 'test'
+      ? [cloudflare({ viteEnvironment: { name: 'ssr' } })]
+      : []),
+    tailwindcss(),
+    ...(!isStorybook ? [tanstackStart()] : []),
+    viteReact(),
+  ],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+    tsconfigPaths: true,
   },
   test: {
     environment: 'jsdom',

@@ -1,5 +1,11 @@
 import { type MotionValue, useMotionValueEvent } from 'motion/react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import type { Size } from './use-pan-zoom';
 
@@ -45,15 +51,6 @@ export function visibleContentRect(
 
 const DEFAULT_MARGIN = 512;
 const UPDATE_THRESHOLD = 128;
-
-function movedEnough(a: ContentRect, b: ContentRect): boolean {
-  return (
-    Math.abs(a.left - b.left) > UPDATE_THRESHOLD ||
-    Math.abs(a.right - b.right) > UPDATE_THRESHOLD ||
-    Math.abs(a.top - b.top) > UPDATE_THRESHOLD ||
-    Math.abs(a.bottom - b.bottom) > UPDATE_THRESHOLD
-  );
-}
 
 /**
  * Track the visible content rect for pan/zoom virtualization. Subscribes to the
@@ -111,4 +108,13 @@ export function useVisibleRect(
   );
 
   return rect;
+}
+
+function movedEnough(a: ContentRect, b: ContentRect): boolean {
+  return (
+    Math.abs(a.left - b.left) > UPDATE_THRESHOLD ||
+    Math.abs(a.right - b.right) > UPDATE_THRESHOLD ||
+    Math.abs(a.top - b.top) > UPDATE_THRESHOLD ||
+    Math.abs(a.bottom - b.bottom) > UPDATE_THRESHOLD
+  );
 }

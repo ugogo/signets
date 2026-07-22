@@ -1,23 +1,43 @@
 import {
+  type ListShotAuthorsQuery,
   listShotAuthorsResponseSchema,
+  type ListShotsQuery,
   listShotsResponseSchema,
   parseJsonResponse,
   SHOTS_PAGE_SIZE,
-  type ListShotsQuery,
-  type ListShotAuthorsQuery,
 } from '@signets/shared';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+
+export type ListShotAuthorsParams = Pick<
+  ListShotAuthorsQuery,
+  'favorites' | 'search'
+>;
 
 export type ListShotsParams = Pick<
   ListShotsQuery,
   'author' | 'favorites' | 'search'
 >;
 
-export type ListShotAuthorsParams = Pick<
-  ListShotAuthorsQuery,
-  'favorites' | 'search'
->;
+export async function fetchShotAuthors(
+  params: ListShotAuthorsParams = {},
+): Promise<Awaited<ReturnType<typeof listShotAuthorsResponseSchema.parse>>> {
+  const url = new URL('/shots/authors', apiBaseUrl);
+
+  if (params.search) {
+    url.searchParams.set('search', params.search);
+  }
+  if (params.favorites) {
+    url.searchParams.set('favorites', 'true');
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to load authors (${response.status})`);
+  }
+
+  return parseJsonResponse(listShotAuthorsResponseSchema, response);
+}
 
 export async function fetchShotsPage(
   params: ListShotsParams = {},
@@ -46,26 +66,6 @@ export async function fetchShotsPage(
   }
 
   return parseJsonResponse(listShotsResponseSchema, response);
-}
-
-export async function fetchShotAuthors(
-  params: ListShotAuthorsParams = {},
-): Promise<Awaited<ReturnType<typeof listShotAuthorsResponseSchema.parse>>> {
-  const url = new URL('/shots/authors', apiBaseUrl);
-
-  if (params.search) {
-    url.searchParams.set('search', params.search);
-  }
-  if (params.favorites) {
-    url.searchParams.set('favorites', 'true');
-  }
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to load authors (${response.status})`);
-  }
-
-  return parseJsonResponse(listShotAuthorsResponseSchema, response);
 }
 
 export function xThumbnailUrl(

@@ -5,12 +5,12 @@ export type Settings = {
   syncToken: string;
 };
 
-export function normalizeSyncToken(token: string): string {
-  return token.trim().replace(/^Bearer\s+/i, '');
-}
-
 export async function loadSettings(): Promise<Settings> {
-  const stored = await chrome.storage.sync.get(['apiEnv', 'apiUrl', 'syncToken']);
+  const stored = await chrome.storage.sync.get([
+    'apiEnv',
+    'apiUrl',
+    'syncToken',
+  ]);
   const apiEnv: ApiEnv = stored.apiEnv === 'dev' ? 'dev' : 'prod';
   const apiUrl =
     apiEnv === 'prod'
@@ -26,4 +26,8 @@ export async function loadSettings(): Promise<Settings> {
         ? normalizeSyncToken(stored.syncToken)
         : '',
   };
+}
+
+export function normalizeSyncToken(token: string): string {
+  return token.trim().replace(/^Bearer\s+/i, '');
 }

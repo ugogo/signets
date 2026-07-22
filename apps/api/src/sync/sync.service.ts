@@ -1,7 +1,8 @@
+import type { SyncPayload, SyncResult, SyncState } from '@signets/shared';
+
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { ShotKind } from '@prisma/client';
-import type { SyncPayload, SyncResult, SyncState } from '@signets/shared';
+
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -46,7 +47,7 @@ export class SyncService {
             bookmarkedAt: new Date(shot.bookmarkedAt),
             caption: shot.caption ?? null,
             height: shot.height ?? null,
-            kind: shot.kind as ShotKind,
+            kind: shot.kind,
             mediaId: shot.mediaId,
             mediaPosterUrl: shot.mediaPosterUrl ?? null,
             mediaUrl: shot.mediaUrl,
@@ -60,7 +61,7 @@ export class SyncService {
             bookmarkedAt: new Date(shot.bookmarkedAt),
             caption: shot.caption ?? null,
             height: shot.height ?? null,
-            kind: shot.kind as ShotKind,
+            kind: shot.kind,
             mediaPosterUrl: shot.mediaPosterUrl ?? null,
             mediaUrl: shot.mediaUrl,
             postId: shot.postId,

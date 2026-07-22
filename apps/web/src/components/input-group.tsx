@@ -1,25 +1,25 @@
-import {
-  Input as PickleInput,
-  type InputProps,
-} from 'pickle-ui/input';
-import { InputGroup as PickleInputGroup } from 'pickle-ui/input-group';
 import type { ComponentProps } from 'react';
+
+import { type InputProps, Input as PickleInput } from 'pickle-ui/input';
+import { InputGroup as PickleInputGroup } from 'pickle-ui/input-group';
 
 import { cn } from '../lib/utils';
 
-type InputGroupProps = ComponentProps<typeof PickleInputGroup>;
 type InputGroupAddonProps = ComponentProps<typeof PickleInputGroup.Addon>;
+type InputGroupProps = ComponentProps<typeof PickleInputGroup>;
 
 const shellClassName =
   'overflow-hidden rounded-xl bg-card shadow-(--shadow-border)';
 
-/**
- * Search field shell: one outer shadow ring. Children must use
- * InputGroup.Addon + Input (not raw bordered pickle-ui parts).
- */
-function InputGroupRoot({ className, ...props }: InputGroupProps) {
+function Input({ className, ...props }: InputProps) {
   return (
-    <PickleInputGroup className={cn(shellClassName, className)} {...props} />
+    <PickleInput
+      className={cn(
+        'rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0',
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -35,15 +35,13 @@ function InputGroupAddon({ className, ...props }: InputGroupAddonProps) {
   );
 }
 
-function Input({ className, ...props }: InputProps) {
+/**
+ * Search field shell: one outer shadow ring. Children must use
+ * InputGroup.Addon + Input (not raw bordered pickle-ui parts).
+ */
+function InputGroupRoot({ className, ...props }: InputGroupProps) {
   return (
-    <PickleInput
-      className={cn(
-        'rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0',
-        className,
-      )}
-      {...props}
-    />
+    <PickleInputGroup className={cn(shellClassName, className)} {...props} />
   );
 }
 

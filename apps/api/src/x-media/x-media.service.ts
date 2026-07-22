@@ -1,12 +1,13 @@
+import type { Request, Response } from 'express';
+import type { ReadableStream } from 'node:stream/web';
+
 import {
   BadGatewayException,
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
 import { isAllowedTwimgUrl } from '@signets/shared';
-import type { Request, Response } from 'express';
 import { Readable } from 'node:stream';
-import type { ReadableStream } from 'node:stream/web';
 
 const UPSTREAM_HEADERS = [
   'accept-ranges',
@@ -21,21 +22,6 @@ const UPSTREAM_HEADERS = [
 /** Hotlink proxy for X CDN URLs blocked by Referer checks in the browser. */
 @Injectable()
 export class XMediaService {
-  validateTwimgUrl(rawUrl: string): URL {
-    let url: URL;
-    try {
-      url = new URL(rawUrl);
-    } catch {
-      throw new BadRequestException('Invalid media URL');
-    }
-
-    if (!isAllowedTwimgUrl(url.toString())) {
-      throw new BadRequestException('Unsupported X media URL');
-    }
-
-    return url;
-  }
-
   async pipe(rawUrl: string, req: Request, res: Response): Promise<void> {
     const url = this.validateTwimgUrl(rawUrl);
 
@@ -90,5 +76,20 @@ export class XMediaService {
     }
 
     Readable.fromWeb(upstream.body as ReadableStream).pipe(res);
+  }
+
+  validateTwimgUrl(rawUrl: string): URL {
+    let url: URL;
+    try {
+      url = new URL(rawUrl);
+    } catch {
+      throw new BadRequestException('Invalid media URL');
+    }
+
+    if (!isAllowedTwimgUrl(url.toString())) {
+      throw new BadRequestException('Unsupported X media URL');
+    }
+
+    return url;
   }
 }
