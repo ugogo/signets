@@ -4,7 +4,7 @@ import { Button } from 'pickle-ui/button';
 
 import { UI_SPRING } from '../lib/motion';
 import { cn } from '../lib/utils';
-import { useTheme } from './theme-provider';
+import { useTheme } from './theme-context';
 
 interface ThemeToggleProps {
   className?: string;

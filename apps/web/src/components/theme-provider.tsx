@@ -1,8 +1,6 @@
 import {
-  createContext,
   type ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -16,14 +14,7 @@ import {
   type Theme,
   THEME_STORAGE_KEY,
 } from '../lib/theme';
-
-interface ThemeContextValue {
-  setTheme: (theme: Theme) => void;
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<null | ThemeContextValue>(null);
+import { ThemeContext } from './theme-context';
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -82,13 +73,4 @@ export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
-}
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-
-  return context;
 }
