@@ -22,29 +22,21 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(
-    () => defaultTheme ?? resolveTheme(getStoredTheme()),
-  );
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const initial = defaultTheme ?? resolveTheme(getStoredTheme());
+    applyTheme(initial);
+    return initial;
+  });
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
-    window.localStorage.setItem(THEME_STORAGE_KEY, next);
     applyTheme(next);
+    window.localStorage.setItem(THEME_STORAGE_KEY, next);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   }, [setTheme, theme]);
-
-  useEffect(() => {
-    if (defaultTheme) {
-      setThemeState(defaultTheme);
-    }
-  }, [defaultTheme]);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
 
   useEffect(() => {
     if (defaultTheme) {
@@ -58,7 +50,9 @@ export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
 
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => {
-      setThemeState(getSystemTheme());
+      const next = getSystemTheme();
+      setThemeState(next);
+      applyTheme(next);
     };
 
     media.addEventListener('change', onChange);

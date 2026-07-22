@@ -7,9 +7,7 @@ import { Text } from 'pickle-ui/text';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
-  useEffect,
   useId,
-  useRef,
 } from 'react';
 
 import { LinkButton } from '@/components/link-button';
@@ -55,7 +53,15 @@ export function ShotDetailDialog({
 }: ShotDetailDialogProps) {
   const authorActive = selectedAuthor === shot.authorHandle;
   const isFavoritePending = favoritePendingShotId === shot.id;
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) {
+      return;
+    }
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    node.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    return () => previouslyFocused?.focus?.();
+  }, []);
   const labelId = useId();
   const reducedMotion = useReducedMotion() ?? false;
   const isVideo = shot.kind !== 'photo';
@@ -70,10 +76,7 @@ export function ShotDetailDialog({
       if (event.key !== 'Tab') {
         return;
       }
-      const dialog = dialogRef.current;
-      if (!dialog) {
-        return;
-      }
+      const dialog = event.currentTarget;
       const focusable = Array.from(
         dialog.querySelectorAll<HTMLElement>(FOCUSABLE),
       );
@@ -93,13 +96,6 @@ export function ShotDetailDialog({
     },
     [onDismiss],
   );
-
-  // Move focus into the dialog on open and restore it on close.
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-    return () => previouslyFocused?.focus?.();
-  }, []);
 
   const scrimTransition = reducedMotion ? REDUCED_MOTION_FADE : UI_SPRING;
   const panelTransition = reducedMotion ? REDUCED_MOTION_FADE : UI_SPRING;

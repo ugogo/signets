@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Slider } from 'pickle-ui/slider';
 import { Text } from 'pickle-ui/text';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Input, InputGroup } from '@/components/input-group';
 import { SegmentControl } from '@/components/segment-control';
@@ -52,18 +52,10 @@ export function LibraryFiltersTray({
     : { duration: 0.15, ease: [0.23, 1, 0.32, 1] as const };
   const [copyState, setCopyState] = useState<'copied' | 'idle'>('idle');
 
-  useEffect(() => {
-    if (copyState !== 'copied') {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setCopyState('idle'), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copyState]);
-
   const handleCopyLink = () => {
     onCopyLink();
     setCopyState('copied');
+    window.setTimeout(() => setCopyState('idle'), 2000);
   };
 
   return (

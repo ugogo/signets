@@ -1,7 +1,12 @@
 import type { Shot } from '@signets/shared';
 
 import { CANVAS_PREFETCH_MAX_SHOTS } from '@signets/shared';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  AnimatePresence,
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+} from 'motion/react';
 import { Text } from 'pickle-ui/text';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -93,9 +98,11 @@ export function ShotCanvas({
   // ghost grid is full — but stop if a resolved page adds nothing (guards
   // against an endless refetch when a non-null cursor returns no items).
   const lastFetchedCountRef = useRef(-1);
-  useEffect(() => {
+  const prevResetKeyRef = useRef(resetKey);
+  if (prevResetKeyRef.current !== resetKey) {
+    prevResetKeyRef.current = resetKey;
     lastFetchedCountRef.current = -1;
-  }, [resetKey]);
+  }
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) {
       return;
@@ -165,13 +172,12 @@ export function ShotCanvas({
   const viewRect = useVisibleRect(x, y, scale, viewport);
 
   // Coarse thumbnail tier, flipped only when scale crosses the threshold.
-  const [highRes, setHighRes] = useState(false);
-  useEffect(() => {
-    const update = (value: number) =>
-      setHighRes(value >= MEDIUM_THUMBNAIL_SCALE);
-    update(scale.get());
-    return scale.on('change', update);
-  }, [scale]);
+  const [highRes, setHighRes] = useState(
+    () => scale.get() >= MEDIUM_THUMBNAIL_SCALE,
+  );
+  useMotionValueEvent(scale, 'change', (value) => {
+    setHighRes(value >= MEDIUM_THUMBNAIL_SCALE);
+  });
 
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeReady, setNodeReady] = useState(false);

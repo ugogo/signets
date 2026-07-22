@@ -4,7 +4,7 @@ import {
   useMotionValue,
   useMotionValueEvent,
 } from 'motion/react';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 
 import { UI_SPRING } from '@/lib/motion';
 
@@ -332,10 +332,11 @@ export function useCanvasViewport({
     );
   }, [applyTransform]);
 
-  // Re-fit when the underlying content identity changes (filter/author swap).
-  useEffect(() => {
+  const prevResetKeyRef = useRef(resetKey);
+  if (prevResetKeyRef.current !== resetKey) {
+    prevResetKeyRef.current = resetKey;
     hasFitRef.current = false;
-  }, [resetKey]);
+  }
 
   // First time the plane is measurable (or after a reset), open zoomed to width
   // and anchored near the top rather than fully zoomed out.

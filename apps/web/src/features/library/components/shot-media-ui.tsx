@@ -1,7 +1,6 @@
 import type { Shot } from '@signets/shared';
 
 import { Film, Play } from 'lucide-react';
-import { useEffect, useRef } from 'react';
 
 import {
   shotFocusSource,
@@ -10,33 +9,11 @@ import {
 import { cn } from '@/lib/utils';
 
 export function ShotDetailMedia({ shot }: { shot: Shot }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const playbackSource = shotFocusSource(shot);
   const label =
     shot.kind === 'animated_gif'
       ? 'Animated GIF design reference'
       : 'Video design reference';
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) {
-      return;
-    }
-
-    const tryPlay = () => {
-      void video.play().catch(() => {
-        // Browser autoplay policy — poster remains visible as fallback.
-      });
-    };
-
-    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      tryPlay();
-      return;
-    }
-
-    video.addEventListener('loadeddata', tryPlay, { once: true });
-    return () => video.removeEventListener('loadeddata', tryPlay);
-  }, [playbackSource]);
 
   return (
     <video
@@ -45,9 +22,13 @@ export function ShotDetailMedia({ shot }: { shot: Shot }) {
       className="max-h-[60vh] w-auto max-w-full rounded-xl object-contain"
       loop
       muted
+      onLoadedData={(event) => {
+        void event.currentTarget.play().catch(() => {
+          // Browser autoplay policy — poster remains visible as fallback.
+        });
+      }}
       playsInline
       poster={shot.mediaPosterUrl ?? undefined}
-      ref={videoRef}
       src={playbackSource}
     />
   );

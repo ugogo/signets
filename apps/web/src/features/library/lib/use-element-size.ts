@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { Size } from './use-pan-zoom';
 
@@ -57,18 +57,17 @@ export function useElementSize(): [
         observer.observe(node);
         observerRef.current = observer;
       }
+
+      return () => {
+        observerRef.current?.disconnect();
+        observerRef.current = null;
+        if (frameRef.current !== 0) {
+          cancelAnimationFrame(frameRef.current);
+          frameRef.current = 0;
+        }
+      };
     },
     [schedule],
-  );
-
-  useEffect(
-    () => () => {
-      observerRef.current?.disconnect();
-      if (frameRef.current !== 0) {
-        cancelAnimationFrame(frameRef.current);
-      }
-    },
-    [],
   );
 
   return [ref, size];
