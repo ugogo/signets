@@ -9,19 +9,6 @@ import {
 } from '@/features/library/lib/shot-media';
 import { cn } from '@/lib/utils';
 
-export function ShotKindBadge({ shot }: { shot: Shot }) {
-  if (!shotIsMotion(shot)) {
-    return null;
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-      <Film className="size-3" />
-      {shot.kind === 'animated_gif' ? 'GIF' : 'Video'}
-    </span>
-  );
-}
-
 export function ShotDetailMedia({ shot }: { shot: Shot }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playbackSource = shotFocusSource(shot);
@@ -63,6 +50,19 @@ export function ShotDetailMedia({ shot }: { shot: Shot }) {
       ref={videoRef}
       src={playbackSource}
     />
+  );
+}
+
+export function ShotKindBadge({ shot }: { shot: Shot }) {
+  if (!shotIsMotion(shot)) {
+    return null;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+      <Film className="size-3" />
+      {shot.kind === 'animated_gif' ? 'GIF' : 'Video'}
+    </span>
   );
 }
 

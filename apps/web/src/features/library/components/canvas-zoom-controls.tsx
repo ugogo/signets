@@ -1,5 +1,4 @@
 import { Maximize2, Minus, Plus } from 'lucide-react';
-
 import { Button } from 'pickle-ui/button';
 
 interface CanvasZoomControlsProps {

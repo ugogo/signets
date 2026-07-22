@@ -7,10 +7,10 @@ import { StaggerEntrance, StaggerItem } from '@/components/stagger-entrance';
 import { SurfaceCard } from './media-card';
 
 interface LibraryEmptyStateProps {
+  icon?: ReactNode;
   message: string;
   title?: string;
   variant?: 'minimal' | 'panel';
-  icon?: ReactNode;
 }
 
 export function LibraryEmptyState({

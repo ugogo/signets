@@ -5,8 +5,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Text } from 'pickle-ui/text';
 import { useCallback, useMemo } from 'react';
 
-import { useInfiniteScrollSentinel } from '@/lib/use-infinite-scroll-sentinel';
 import { OPACITY_CROSSFADE } from '@/lib/motion';
+import { useInfiniteScrollSentinel } from '@/lib/use-infinite-scroll-sentinel';
 
 import { LibraryEmptyState } from './library-empty-state';
 import { LibraryErrorMessage } from './library-error-message';

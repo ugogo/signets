@@ -1,10 +1,4 @@
-import {
-  Check,
-  Copy,
-  Heart,
-  LayoutGrid,
-  Map,
-} from 'lucide-react';
+import { Check, Copy, Heart, LayoutGrid, Map } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Slider } from 'pickle-ui/slider';
@@ -13,9 +7,7 @@ import { useEffect, useState } from 'react';
 
 import { Input, InputGroup } from '@/components/input-group';
 import { SegmentControl } from '@/components/segment-control';
-import {
-  type ViewMode,
-} from '@/features/library/lib/library-search-params';
+import { type ViewMode } from '@/features/library/lib/library-search-params';
 import { REDUCED_MOTION_FADE } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
