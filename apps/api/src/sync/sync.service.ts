@@ -1,31 +1,23 @@
 import type { SyncPayload, SyncResult, SyncState } from '@signets/shared';
 
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class SyncService {
-  private readonly userSlug: string;
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(
-    private readonly prisma: PrismaService,
-    config: ConfigService,
-  ) {
-    this.userSlug = config.get<string>('USER_SLUG') ?? 'default';
-  }
-
-  async getState(): Promise<SyncState> {
-    const user = await this.ensureUser();
+  async getState(userId: string): Promise<SyncState> {
+    const user = await this.findUser(userId);
 
     return {
       lastBookmarkSyncAt: user.lastBookmarkSyncAt?.toISOString() ?? null,
     };
   }
 
-  async upsertShots(payload: SyncPayload): Promise<SyncResult> {
-    const user = await this.ensureUser();
+  async upsertShots(userId: string, payload: SyncPayload): Promise<SyncResult> {
+    const user = await this.findUser(userId);
 
     const newestBookmarkedAt = payload.shots.reduce((latest, shot) => {
       const at = new Date(shot.bookmarkedAt);
@@ -52,7 +44,7 @@ export class SyncService {
             mediaPosterUrl: shot.mediaPosterUrl ?? null,
             mediaUrl: shot.mediaUrl,
             postId: shot.postId,
-            userId: user.id,
+            userId,
             width: shot.width ?? null,
           },
           update: {
@@ -70,14 +62,14 @@ export class SyncService {
           where: {
             userId_mediaId: {
               mediaId: shot.mediaId,
-              userId: user.id,
+              userId,
             },
           },
         }),
       ),
       this.prisma.user.update({
         data: { lastBookmarkSyncAt },
-        where: { id: user.id },
+        where: { id: userId },
       }),
     ]);
 
@@ -87,11 +79,15 @@ export class SyncService {
     };
   }
 
-  private async ensureUser() {
-    return this.prisma.user.upsert({
-      create: { slug: this.userSlug },
-      update: {},
-      where: { slug: this.userSlug },
+  private async findUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
     });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 }

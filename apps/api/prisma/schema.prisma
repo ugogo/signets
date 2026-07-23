@@ -15,32 +15,86 @@ enum ShotKind {
 }
 
 model User {
-  id                   String    @id @default(uuid()) @db.Uuid
-  slug                 String    @unique
-  createdAt            DateTime  @default(now()) @db.Timestamptz(6)
-  lastBookmarkSyncAt   DateTime? @db.Timestamptz(6)
-  shots                Shot[]
+  id                 String    @id
+  name               String
+  email              String
+  emailVerified      Boolean
+  image              String?
+  createdAt          DateTime  @db.Timestamptz(6)
+  updatedAt          DateTime  @db.Timestamptz(6)
+  lastBookmarkSyncAt DateTime? @db.Timestamptz(6)
+  sessions           Session[]
+  accounts           Account[]
+  shots              Shot[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @db.Timestamptz(6)
+  token     String
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @db.Timestamptz(6)
+  updatedAt             DateTime  @db.Timestamptz(6)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime  @db.Timestamptz(6)
+  createdAt  DateTime? @db.Timestamptz(6)
+  updatedAt  DateTime? @db.Timestamptz(6)
+
+  @@map("verification")
 }
 
 model Shot {
-  id               String   @id @default(uuid()) @db.Uuid
-  userId           String   @db.Uuid
-  postId           String
-  mediaId          String
-  kind             ShotKind
-  mediaUrl         String
-  mediaPosterUrl   String?
-  hostedImageKey   String?
-  width            Int?
-  height           Int?
-  authorHandle     String
-  authorName       String?
-  caption          String?
-  bookmarkedAt     DateTime @db.Timestamptz(6)
-  isFavorite       Boolean  @default(false)
-  createdAt        DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String
+  postId         String
+  mediaId        String
+  kind           ShotKind
+  mediaUrl       String
+  mediaPosterUrl String?
+  hostedImageKey String?
+  width          Int?
+  height         Int?
+  authorHandle   String
+  authorName     String?
+  caption        String?
+  bookmarkedAt   DateTime @db.Timestamptz(6)
+  isFavorite     Boolean  @default(false)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, mediaId])
   @@index([userId, bookmarkedAt])

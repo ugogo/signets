@@ -7,7 +7,7 @@ import {
   SHOTS_PAGE_SIZE,
 } from '@signets/shared';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+import { apiFetchOptions, apiUrl } from '@/lib/api-fetch';
 
 export type ListShotAuthorsParams = Pick<
   ListShotAuthorsQuery,
@@ -22,7 +22,7 @@ export type ListShotsParams = Pick<
 export async function fetchShotAuthors(
   params: ListShotAuthorsParams = {},
 ): Promise<Awaited<ReturnType<typeof listShotAuthorsResponseSchema.parse>>> {
-  const url = new URL('/shots/authors', apiBaseUrl);
+  const url = apiUrl('/shots/authors');
 
   if (params.search) {
     url.searchParams.set('search', params.search);
@@ -31,7 +31,7 @@ export async function fetchShotAuthors(
     url.searchParams.set('favorites', 'true');
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, apiFetchOptions);
   if (!response.ok) {
     throw new Error(`Failed to load authors (${response.status})`);
   }
@@ -43,7 +43,7 @@ export async function fetchShotsPage(
   params: ListShotsParams = {},
   cursor?: string,
 ): Promise<Awaited<ReturnType<typeof listShotsResponseSchema.parse>>> {
-  const url = new URL('/shots', apiBaseUrl);
+  const url = apiUrl('/shots');
 
   url.searchParams.set('limit', String(SHOTS_PAGE_SIZE));
 
@@ -60,7 +60,7 @@ export async function fetchShotsPage(
     url.searchParams.set('cursor', cursor);
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, apiFetchOptions);
   if (!response.ok) {
     throw new Error(`Failed to load shots (${response.status})`);
   }

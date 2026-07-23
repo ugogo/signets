@@ -1,8 +1,7 @@
-import { Check, Copy, Heart, LayoutGrid, Map } from 'lucide-react';
+import { Check, Copy, Heart, LayoutGrid, LogOut, Map } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Group } from 'pickle-ui/group';
-import { InputGroup } from 'pickle-ui/input-group';
 import { Slider } from 'pickle-ui/slider';
 import { Text } from 'pickle-ui/text';
 import { useState } from 'react';
@@ -13,17 +12,13 @@ import { cn } from '@/lib/utils';
 
 export interface LibraryFiltersTrayProps {
   authors: string[];
-  curationToken: string;
   density: number;
   favoritesOnly: boolean;
-  isCurator: boolean;
   onAuthorToggle: (authorHandle: string) => void;
-  onClearCurationToken: () => void;
   onCopyLink: () => void;
-  onCurationTokenChange: (token: string) => void;
   onDensityChange: (density: number) => void;
   onFavoritesOnlyChange: (favoritesOnly: boolean) => void;
-  onSaveCurationToken: () => void;
+  onSignOut: () => void;
   onViewModeChange: (mode: ViewMode) => void;
   selectedAuthor: null | string;
   viewMode: ViewMode;
@@ -31,17 +26,13 @@ export interface LibraryFiltersTrayProps {
 
 export function LibraryFiltersTray({
   authors,
-  curationToken,
   density,
   favoritesOnly,
-  isCurator,
   onAuthorToggle,
-  onClearCurationToken,
   onCopyLink,
-  onCurationTokenChange,
   onDensityChange,
   onFavoritesOnlyChange,
-  onSaveCurationToken,
+  onSignOut,
   onViewModeChange,
   selectedAuthor,
   viewMode,
@@ -183,37 +174,10 @@ export function LibraryFiltersTray({
           )}
           Copy link
         </Button>
-      </div>
-
-      <div className="space-y-2 border-t border-border/60 pt-2">
-        <Text as="p" tone="muted" variant="small">
-          Curation token
-        </Text>
-        <Text as="p" tone="muted" variant="small">
-          Stored locally in this browser. Same value as the extension sync
-          token.
-        </Text>
-        <InputGroup>
-          <InputGroup.Input
-            aria-label="Sync token for curation"
-            autoComplete="off"
-            className="touch-input font-mono text-xs"
-            onChange={(event) => onCurationTokenChange(event.target.value)}
-            placeholder="Paste sync token…"
-            type="password"
-            value={curationToken}
-          />
-        </InputGroup>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onSaveCurationToken} size="sm">
-            Save token
-          </Button>
-          {isCurator ? (
-            <Button onClick={onClearCurationToken} size="sm" variant="outline">
-              Clear
-            </Button>
-          ) : null}
-        </div>
+        <Button onClick={onSignOut} size="sm" variant="outline">
+          <LogOut className="size-4" />
+          Sign out
+        </Button>
       </div>
     </div>
   );

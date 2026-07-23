@@ -70,17 +70,12 @@ function HomePagePreview() {
   return (
     <LibraryShell
       authors={mockAuthors}
-      curationToken=""
       density={density}
       favoritesOnly={favoritesOnly}
-      isCurator={false}
       onAuthorToggle={toggleAuthor}
-      onClearCurationToken={() => undefined}
       onCopyLink={() => undefined}
-      onCurationTokenChange={() => undefined}
       onDensityChange={setDensity}
       onFavoritesOnlyChange={setFavoritesOnly}
-      onSaveCurationToken={() => undefined}
       onSearchChange={setSearch}
       onViewModeChange={setViewMode}
       search={search}

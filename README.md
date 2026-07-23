@@ -4,18 +4,18 @@ Personal, hosted gallery for browsing design images saved as X bookmarks.
 
 ## Live
 
-| Service | URL |
-| ------- | --- |
+| Service           | URL                                         |
+| ----------------- | ------------------------------------------- |
 | **Gallery (web)** | https://signets-web.ugo-j-onali.workers.dev |
-| **API** | https://signets-api.onrender.com |
-| **API health** | https://signets-api.onrender.com/health |
+| **API**           | https://signets-api.onrender.com            |
+| **API health**    | https://signets-api.onrender.com/health     |
 
 **Dashboards:** [Cloudflare Workers](https://dash.cloudflare.com/) (worker `signets-web`) · [Render](https://dashboard.render.com/web/srv-d9d3qvojs32c738nf7eg) · [Neon](https://console.neon.tech/app/projects/winter-river-82348896)
 
 ## Stack
 
 - **Web:** TanStack Start on Cloudflare Workers (`apps/web`)
-- **API:** NestJS + Prisma + Neon Postgres (`apps/api`)
+- **API:** NestJS + Prisma + Neon Postgres + better-auth (`apps/api`)
 - **Extension:** Chrome MV3 companion (`apps/extension`)
 - **Shared contract:** Zod schemas in `packages/shared`
 
@@ -26,6 +26,7 @@ See `docs/adr/` and `CONTEXT.md` for product and architecture decisions.
 - Node 22+ (pinned in `.node-version`; use [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm))
 - pnpm 10+ (pinned in root `packageManager`; Corepack installs the correct version)
 - Neon Postgres database (or a temporary dev DB via `create-db`)
+- Google OAuth client credentials for better-auth
 
 ## Setup
 
@@ -40,12 +41,12 @@ Get a Postgres database for local development:
 ```bash
 # Temporary cloud DB (24h, good for first run)
 pnpm dlx create-db@latest create --env apps/api/.env --ttl 24h
-# Then add DIRECT_URL (same as DATABASE_URL) and SYNC_TOKEN to apps/api/.env
+# Then add DIRECT_URL (same as DATABASE_URL) and auth env vars to apps/api/.env
 ```
 
 Or use a [Neon](https://neon.tech) project and paste pooled/direct URLs into `apps/api/.env`.
 
-Set `DATABASE_URL`, `DIRECT_URL`, and `SYNC_TOKEN` in `apps/api/.env`, then migrate:
+Set auth and database env vars in `apps/api/.env`, then migrate:
 
 ```bash
 pnpm db:migrate
@@ -70,7 +71,7 @@ Load the extension from `apps/extension/public` in Chrome (Developer mode → Lo
 
 ## How to use
 
-Signets turns your X (Twitter) bookmarked design images into a personal inspiration gallery. You capture shots with a Chrome extension, sync them to the API, then browse them on the web app. There is no login — the gallery is public, and only sync/curation endpoints require a shared secret.
+Signets turns your X (Twitter) bookmarked design images into a personal inspiration gallery. You sign in with Google, capture shots with a Chrome extension, sync them to the API, then browse and curate them on the web app. Libraries are private to the signed-in user.
 
 ### 1. Run the stack (local or production)
 
@@ -78,6 +79,7 @@ Signets turns your X (Twitter) bookmarked design images into a personal inspirat
 
 1. Complete [Setup](#setup) and [Development](#development) above (`pnpm dev:api`, `pnpm dev:web`).
 2. Use `http://localhost:3001` as the API URL and `http://localhost:3000` as the gallery URL.
+3. Set `BETTER_AUTH_URL=http://localhost:3001` and `WEB_ORIGIN=http://localhost:3000`.
 
 **Production**
 
@@ -86,7 +88,7 @@ Use the live URLs from [Live](#live):
 - Gallery: `https://signets-web.ugo-j-onali.workers.dev`
 - API: `https://signets-api.onrender.com`
 
-Generate a long random `SYNC_TOKEN` (16+ characters) and set it on Render. You will paste the same value into the extension.
+Configure Google OAuth redirect URIs for both the web app and extension callback (`/api/auth/callback/google` on the API).
 
 ### 2. Install the Chrome extension
 
@@ -100,12 +102,11 @@ pnpm --filter @signets/extension build
 
 For production, add your API origin to `host_permissions` in `apps/extension/public/manifest.json` (localhost is already included), then rebuild and reload the extension.
 
-### 3. Configure the extension
+### 3. Sign in
 
-1. Click the **Signets Sync** icon to open the popup.
-2. Set **API URL** — local: `http://localhost:3001`; production: your Render API URL.
-3. Set **Sync token** — the same value as `SYNC_TOKEN` in `apps/api/.env` (local) or Render (production).
-4. Click **Save settings**. Credentials are stored in Chrome sync storage.
+**Web app:** open the gallery and click **Continue with Google** on `/login`.
+
+**Extension:** open the side panel → **Settings** → **Sign in with Google**. The extension stores a bearer session token in Chrome sync storage.
 
 ### 4. Capture bookmarks on X
 
@@ -121,61 +122,47 @@ Captured shots live only in the tab’s memory until you sync. Reloading the boo
 ### 5. Sync to Signets
 
 1. With the **bookmarks tab active**, open the extension popup.
-2. Click **Sync captured shots**.
+2. Click **Sync bookmarks**.
 3. On success you will see something like `Synced N shots (M captured).`
 
 Sync is **manual and on-demand**. It is also **additive only**:
 
 - New shots are added; existing shots get refreshed metadata (caption, author, image URL).
 - **Favorites are preserved** across syncs.
-- Shots you remove from X bookmarks **stay in Signets** until you delete them via the API (see below).
+- Shots you remove from X bookmarks **stay in Signets** until you delete them in the gallery.
 
-If sync fails, check that the bookmarks tab is focused, you have scrolled to capture at least one photo shot, the API URL is correct, and the sync token matches the server.
+If sync fails, check that you are signed in, the bookmarks tab is focused, you have scrolled to capture at least one photo shot, and the API URL is correct.
 
 ### 6. Browse the gallery
 
-Open the web app (local: `http://localhost:3000`; production: your Workers URL).
+Open the web app (local: `http://localhost:3000`; production: your Workers URL). Sign in with Google if prompted.
 
-The home page is a masonry grid of all synced shots, ordered by bookmark date (newest first).
+The home page is a masonry grid of your synced shots, ordered by bookmark date (newest first).
 
-| Control | What it does |
-| ------- | ------------ |
-| **Search** | Filter by caption, author handle, or author name |
-| **Author** | Filter to one `@handle` |
-| **Favorites only** | Show only shots marked as favorites |
-| **Density slider** | Adjust column width and thumbnail size |
-| **Shot count** | Number of shots matching current filters |
+| Control            | What it does                                     |
+| ------------------ | ------------------------------------------------ |
+| **Search**         | Filter by caption, author handle, or author name |
+| **Author**         | Filter to one `@handle`                          |
+| **Favorites only** | Show only shots marked as favorites              |
+| **Density slider** | Adjust column width and thumbnail size           |
+| **Shot count**     | Number of shots matching current filters         |
 
 Click any shot to open the **focus overlay** — full-size photo, or motion playback for video/GIF shots (via the API proxy). Use **View on X** in the overlay to open the original post.
 
-If the library is empty, you will see: *“No shots yet. Sync bookmarks from the companion extension.”*
+If the library is empty, you will see: _“No shots yet. Sync bookmarks from the companion extension.”_
 
-### 7. Curate shots (API only)
+### 7. Curate shots
 
-The web UI is read-only for curation today. Use the API with your sync token:
-
-```bash
-# Mark or unmark a favorite (toggles isFavorite)
-curl -X PATCH "https://signets-api.onrender.com/shots/SHOT_ID/favorite" \
-  -H "Authorization: Bearer YOUR_SYNC_TOKEN"
-
-# Remove a shot from your library
-curl -X DELETE "https://signets-api.onrender.com/shots/SHOT_ID" \
-  -H "Authorization: Bearer YOUR_SYNC_TOKEN"
-```
-
-Replace `SHOT_ID` with the shot’s UUID from `GET /shots`. After marking favorites, use the **Favorites only** filter in the gallery.
+From the gallery or focus overlay you can favorite or delete shots when signed in. Use **Sign out** in the filters tray to end your session.
 
 ### 8. Ongoing workflow
 
 Typical day-to-day use:
 
 1. Bookmark design posts on X as usual.
-2. Periodically open `x.com/i/bookmarks`, scroll to load new bookmarks, and **Sync captured shots**.
+2. Periodically open `x.com/i/bookmarks`, scroll to load new bookmarks, and **Sync bookmarks**.
 3. Browse and filter on the gallery; open posts on X for full context.
-4. Optionally favorite or delete shots via curl when curating.
-
-Each API deployment serves one library, keyed by `USER_SLUG` (default `default`). The gallery is public — anyone with the URL can view it; only you (with the sync token) can push or curate data.
+4. Favorite or delete shots directly in the web UI.
 
 ## Deployment
 
@@ -185,13 +172,15 @@ Production is live (see [Live](#live) above). Redeploy from your machine:
 
 [`render.yaml`](render.yaml) defines the `signets-api` web service. Required env vars:
 
-| Variable       | Notes                                      |
-| -------------- | ------------------------------------------ |
-| `DATABASE_URL` | Neon pooled connection string              |
-| `DIRECT_URL`   | Neon direct connection string (migrations) |
-| `SYNC_TOKEN`   | Long random secret (16+ chars)             |
-| `WEB_ORIGIN`   | Public gallery URL(s), comma-separated     |
-| `USER_SLUG`    | User key for single-user MVP               |
+| Variable               | Notes                                                    |
+| ---------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`         | Neon pooled connection string                            |
+| `DIRECT_URL`           | Neon direct connection string (migrations)               |
+| `BETTER_AUTH_SECRET`   | 32+ character secret                                     |
+| `BETTER_AUTH_URL`      | Public API URL (e.g. `https://signets-api.onrender.com`) |
+| `GOOGLE_CLIENT_ID`     | Google OAuth client ID                                   |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret                               |
+| `WEB_ORIGIN`           | Public gallery URL(s), comma-separated                   |
 
 `start:prod` runs `prisma migrate deploy` before boot. Health check: `GET /health`.
 
@@ -216,19 +205,17 @@ After deploy, ensure Render `WEB_ORIGIN` includes your Workers URL (currently `h
 
 ## Scripts
 
-| Command            | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `pnpm dev`         | Run web + api in parallel                         |
-| `pnpm typecheck`   | Typecheck all workspaces                          |
-| `pnpm test`        | Run workspace tests                               |
-| `pnpm db:generate` | Create a Prisma migration (`prisma migrate dev`)  |
-| `pnpm db:migrate`  | Apply Prisma migrations (`prisma migrate deploy`) |
+| Command            | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `pnpm dev`         | Build shared package and run API + web in parallel |
+| `pnpm dev:api`     | NestJS API only                                    |
+| `pnpm dev:web`     | TanStack Start web only                            |
+| `pnpm build`       | Build all packages                                 |
+| `pnpm typecheck`   | Typecheck all packages                             |
+| `pnpm test`        | Run unit tests                                     |
+| `pnpm db:migrate`  | Apply Prisma migrations                            |
+| `pnpm db:generate` | Create a new migration (dev)                       |
 
-## Agent skills
+## License
 
-Tech-stack skills installed under `.agents/skills/`:
-
-- TanStack Start / Router / Query best practices
-- NestJS best practices
-- Neon Postgres
-- Prisma (CLI, Client API, database setup, Postgres)
+Private — not for redistribution.

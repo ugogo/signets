@@ -23,7 +23,7 @@ export async function fetchSyncState(settings: Settings): Promise<SyncState> {
   const response = await requestSync(
     settings,
     '/sync/state',
-    { headers: authHeaders(settings.syncToken) },
+    { headers: authHeaders(settings.sessionToken) },
     'fetching sync state',
   );
 
@@ -48,7 +48,7 @@ export async function uploadSyncBatch(
     {
       body: JSON.stringify({ shots }),
       headers: {
-        ...authHeaders(settings.syncToken),
+        ...authHeaders(settings.sessionToken),
         'Content-Type': 'application/json',
       },
       method: 'POST',
@@ -71,8 +71,8 @@ export async function verifySyncCredentials(settings: Settings): Promise<void> {
   const response = await requestSync(
     settings,
     '/sync/verify',
-    { headers: authHeaders(settings.syncToken) },
-    'verifying the sync token',
+    { headers: authHeaders(settings.sessionToken) },
+    'verifying session',
   );
 
   if (response.status === 404) {
@@ -95,9 +95,9 @@ export async function verifySyncCredentials(settings: Settings): Promise<void> {
   }
 }
 
-function authHeaders(syncToken: string): HeadersInit {
+function authHeaders(sessionToken: string): HeadersInit {
   return {
-    Authorization: `Bearer ${syncToken}`,
+    Authorization: `Bearer ${sessionToken}`,
   };
 }
 
@@ -127,8 +127,8 @@ function formatSyncFailure(
 ): string {
   if (status === 401) {
     return (
-      `Invalid sync token (HTTP 401) for ${apiUrl}. ` +
-      'Use the exact SYNC_TOKEN from apps/api/.env (no "Bearer " prefix), save settings, then retry.'
+      `Session expired or invalid (HTTP 401) for ${apiUrl}. ` +
+      'Sign in again from the extension settings, then retry.'
     );
   }
 

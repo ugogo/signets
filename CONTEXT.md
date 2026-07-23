@@ -25,11 +25,11 @@ A shot the owner has flagged as a standout, browsable as its own subset of the l
 _Avoid_: Like, star, pin
 
 **User**:
-The person a library belongs to. Signets is single-user today, but every shot belongs to a user so multi-user is a later addition rather than a rewrite.
+The person a library belongs to. Signets uses Google sign-in via better-auth; every shot belongs to the authenticated user. Multi-user is supported at the data layer — each user sees only their own library.
 _Avoid_: Owner, account, member
 
 **Library**:
-The complete set of shots belonging to one user.
+The complete set of shots belonging to one user. Private to that user; sign-in is required to browse or curate.
 _Avoid_: Collection, gallery, board
 
 **Author**:

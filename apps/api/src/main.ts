@@ -6,8 +6,9 @@ import { AppModule } from './app.module.js';
 import { type Env, parseWebOrigins } from './config/env.schema.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.useBodyParser('json', { limit: '1mb' });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
   app.enableShutdownHooks();
 
   const httpAdapter = app.getHttpAdapter().getInstance() as {
@@ -21,6 +22,7 @@ async function bootstrap() {
   const webOrigins = parseWebOrigins(config.get('WEB_ORIGIN', { infer: true }));
 
   app.enableCors({
+    credentials: true,
     origin: webOrigins,
   });
 

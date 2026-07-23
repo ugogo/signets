@@ -15,9 +15,13 @@ services:
         sync: false
       - key: DIRECT_URL
         sync: false
-      - key: SYNC_TOKEN
+      - key: BETTER_AUTH_SECRET
         sync: false
-      - key: USER_SLUG
-        value: default
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: WEB_ORIGIN
         sync: false

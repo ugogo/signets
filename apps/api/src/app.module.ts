@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { AuthModule } from './auth/auth.module.js';
 import { validateEnv } from './config/env.schema.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -23,6 +24,7 @@ import { XMediaModule } from './x-media/x-media.module.js';
         ttl: 60_000,
       },
     ]),
+    AuthModule,
     PrismaModule,
     HealthModule,
     XMediaModule,

@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
 export const envSchema = z.object({
+  BETTER_AUTH_SECRET: z.string().min(32),
+  BETTER_AUTH_URL: z.string().url(),
   DATABASE_URL: z.string().min(1),
   DIRECT_URL: z.string().min(1),
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
   PORT: z.coerce.number().int().positive().default(3001),
-  SYNC_TOKEN: z.string().min(16),
-  USER_SLUG: z.string().min(1).default('default'),
   WEB_ORIGIN: z.string().min(1),
 });
 

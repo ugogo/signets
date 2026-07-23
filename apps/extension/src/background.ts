@@ -228,13 +228,16 @@ async function runSync(
     appendLog('info', 'Starting sync…');
 
     const settings = await loadSettings();
-    if (!settings.syncToken) {
-      appendLog('error', 'Sync token is missing. Save settings first.');
-      sendResponse({ error: 'Sync token is missing.', ok: false });
+    if (!settings.sessionToken) {
+      appendLog('error', 'Sign in from extension settings first.');
+      sendResponse({
+        error: 'Sign in from extension settings first.',
+        ok: false,
+      });
       return;
     }
 
-    appendLog('info', 'Verifying sync token…');
+    appendLog('info', 'Verifying session…');
     await verifySyncCredentials(settings);
     const syncState = await fetchSyncState(settings);
 

@@ -1,12 +1,13 @@
 import type { SyncPayload } from '@signets/shared';
 
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { syncPayloadSchema } from '@signets/shared';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 
 import type { SyncVerifyResponse } from './sync.schema.js';
 
-import { SyncTokenGuard } from '../auth/sync-token.guard.js';
+import { requireUserId } from '../auth/session-user.js';
 import { zodPipe } from '../common/zod-validation.pipe.js';
 import { SyncService } from './sync.service.js';
 
@@ -15,20 +16,20 @@ export class SyncController {
   constructor(private readonly syncService: SyncService) {}
 
   @Get('state')
-  @UseGuards(SyncTokenGuard)
-  state() {
-    return this.syncService.getState();
+  state(@Session() session: UserSession) {
+    return this.syncService.getState(requireUserId(session));
   }
 
   @Post()
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
-  @UseGuards(SyncTokenGuard)
-  async sync(@Body(zodPipe(syncPayloadSchema)) payload: SyncPayload) {
-    return this.syncService.upsertShots(payload);
+  async sync(
+    @Session() session: UserSession,
+    @Body(zodPipe(syncPayloadSchema)) payload: SyncPayload,
+  ) {
+    return this.syncService.upsertShots(requireUserId(session), payload);
   }
 
   @Get('verify')
-  @UseGuards(SyncTokenGuard)
   verify(): SyncVerifyResponse {
     return { ok: true };
   }

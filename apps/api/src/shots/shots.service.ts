@@ -8,7 +8,6 @@ import type {
 } from '@signets/shared';
 
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   decodeShotCursor,
   encodeShotCursor,
@@ -19,23 +18,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class ShotsService {
-  private readonly userSlug: string;
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(
-    private readonly prisma: PrismaService,
-    config: ConfigService,
-  ) {
-    this.userSlug = config.get<string>('USER_SLUG') ?? 'default';
-  }
-
-  async list(filters: ListShotsQuery): Promise<ListShotsResponse> {
-    const user = await this.getUser();
-    if (!user) {
-      return { items: [], nextCursor: null, total: 0 };
-    }
-
+  async list(
+    userId: string,
+    filters: ListShotsQuery,
+  ): Promise<ListShotsResponse> {
     const limit = filters.limit ?? SHOTS_PAGE_SIZE;
-    const baseWhere = this.buildShotWhere(user.id, filters);
+    const baseWhere = this.buildShotWhere(userId, filters);
     const cursor = this.parseCursor(filters.cursor);
     const where = cursor ? this.applyCursor(baseWhere, cursor) : baseWhere;
     const isFirstPage = !filters.cursor;
@@ -69,13 +59,11 @@ export class ShotsService {
     };
   }
 
-  async listAuthors(filters: ListShotAuthorsQuery): Promise<string[]> {
-    const user = await this.getUser();
-    if (!user) {
-      return [];
-    }
-
-    const where = this.buildShotWhere(user.id, filters);
+  async listAuthors(
+    userId: string,
+    filters: ListShotAuthorsQuery,
+  ): Promise<string[]> {
+    const where = this.buildShotWhere(userId, filters);
     const groups = await this.prisma.shot.groupBy({
       by: ['authorHandle'],
       orderBy: { authorHandle: 'asc' },
@@ -85,29 +73,19 @@ export class ShotsService {
     return groups.map((group) => group.authorHandle);
   }
 
-  async remove(id: string): Promise<boolean> {
-    const user = await this.getUser();
-    if (!user) {
-      return false;
-    }
-
+  async remove(userId: string, id: string): Promise<boolean> {
     const deleted = await this.prisma.shot.deleteMany({
-      where: { id, userId: user.id },
+      where: { id, userId },
     });
 
     return deleted.count > 0;
   }
 
-  async toggleFavorite(id: string): Promise<null | Shot> {
-    const user = await this.getUser();
-    if (!user) {
-      return null;
-    }
-
+  async toggleFavorite(userId: string, id: string): Promise<null | Shot> {
     const rows = await this.prisma.$queryRaw<PrismaShot[]>`
       UPDATE "Shot"
       SET "isFavorite" = NOT "isFavorite", "updatedAt" = NOW()
-      WHERE "id" = ${id}::uuid AND "userId" = ${user.id}::uuid
+      WHERE "id" = ${id}::uuid AND "userId" = ${userId}
       RETURNING *
     `;
 
@@ -162,12 +140,6 @@ export class ShotsService {
     }
 
     return where;
-  }
-
-  private async getUser() {
-    return this.prisma.user.findUnique({
-      where: { slug: this.userSlug },
-    });
   }
 
   private parseCursor(cursor: string | undefined): ShotCursor | undefined {
