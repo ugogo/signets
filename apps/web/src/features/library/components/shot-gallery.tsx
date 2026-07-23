@@ -1,5 +1,6 @@
 import type { Shot } from '@signets/shared';
 
+import { useHydrated } from '@tanstack/react-router';
 import { BookmarkPlus } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
@@ -65,6 +66,8 @@ export function ShotGallery({
   shots,
 }: ShotGalleryProps) {
   const reducedMotion = useReducedMotion() ?? false;
+  const hydrated = useHydrated();
+
   const columnWidth = useMemo(() => {
     const min = 120;
     const max = 420;
@@ -73,27 +76,28 @@ export function ShotGallery({
 
   const [containerRef, size] = useElementSize();
 
-  const columnCount = useMemo(() => {
-    // Prefer measured width; fall back to the last known wall width (then
-    // viewport) so the first paint is close before ResizeObserver commits.
+  const containerWidth = useMemo(() => {
     if (size?.width) {
       lastWallWidth = size.width;
+      return size.width;
     }
-    const width =
-      size?.width ??
-      lastWallWidth ??
-      (typeof window !== 'undefined' ? window.innerWidth : columnWidth);
-    return Math.max(1, columnsForWidth(width, columnWidth, GAP));
-  }, [columnWidth, size]);
+
+    // Match SSR markup on the first client render, then use viewport width.
+    if (!hydrated) {
+      return columnWidth;
+    }
+
+    return lastWallWidth ?? window.innerWidth;
+  }, [columnWidth, hydrated, size?.width]);
+
+  const columnCount = useMemo(() => {
+    return Math.max(1, columnsForWidth(containerWidth, columnWidth, GAP));
+  }, [columnWidth, containerWidth]);
 
   const columns = useMemo(() => {
-    const width =
-      size?.width ??
-      lastWallWidth ??
-      (typeof window !== 'undefined' ? window.innerWidth : columnWidth);
     const packedWidth =
       columnCount > 0
-        ? (width - GAP * (columnCount - 1)) / columnCount
+        ? (containerWidth - GAP * (columnCount - 1)) / columnCount
         : columnWidth;
     const aspects = shots.map((shot) =>
       shot.width && shot.height ? shot.width / shot.height : FALLBACK_ASPECT,
@@ -102,7 +106,7 @@ export function ShotGallery({
     return packed.map((indices) =>
       indices.map((index) => ({ index, shot: shots[index] })),
     );
-  }, [columnCount, columnWidth, shots, size?.width]);
+  }, [columnCount, columnWidth, containerWidth, shots]);
 
   // Track tiles that have already played their entrance so re-renders
   // (ResizeObserver, density, etc.) do not cancel in-flight stagger.

@@ -1,5 +1,7 @@
 import { createAuthClient } from 'better-auth/react';
 
+import { sanitizeRedirect } from '@/lib/auth-redirect';
+
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 export const authClient = createAuthClient({
@@ -14,9 +16,12 @@ export async function getSession() {
   return data;
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(redirectTo?: string) {
+  const path = sanitizeRedirect(redirectTo);
+  const callbackURL = new URL(path, window.location.origin).toString();
+
   await authClient.signIn.social({
-    callbackURL: window.location.origin,
+    callbackURL,
     provider: 'google',
   });
 }

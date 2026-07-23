@@ -1,3 +1,4 @@
+import { useHydrated } from '@tanstack/react-router';
 import { Moon, Sun } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
@@ -19,8 +20,23 @@ const ICON_MOTION = {
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const hydrated = useHydrated();
 
+  if (!hydrated) {
+    return (
+      <Button
+        aria-label="Toggle theme"
+        className={className}
+        disabled
+        size="icon"
+        variant="outline"
+      >
+        <Moon aria-hidden className="size-4" />
+      </Button>
+    );
+  }
+
+  const isDark = theme === 'dark';
   return (
     <Button
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
