@@ -22,7 +22,8 @@
   "devDependencies": {
     "@signets/eslint-config": "workspace:*",
     "eslint": "^9.39.1",
-    "prettier": "^3.6.2"
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=22",
@@ -35,6 +36,9 @@
       "@prisma/client",
       "@prisma/engines",
       "prisma"
-    ]
+    ],
+    "overrides": {
+      "typescript": "$typescript"
+    }
   }
 }

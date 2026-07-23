@@ -22,8 +22,8 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() =>
-    defaultTheme ?? resolveTheme(getStoredTheme()),
+  const [theme, setThemeState] = useState<Theme>(
+    () => defaultTheme ?? resolveTheme(getStoredTheme()),
   );
 
   const setTheme = useCallback((next: Theme) => {

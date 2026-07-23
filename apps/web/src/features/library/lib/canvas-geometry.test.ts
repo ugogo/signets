@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  chooseColumnCount,
-  computeMasonryLayout,
-} from './canvas-grid';
-import {
-  columnsForWidth,
-  FALLBACK_ASPECT,
-  packIntoColumns,
-} from './masonry';
+import { chooseColumnCount, computeMasonryLayout } from './canvas-grid';
+import { columnsForWidth, FALLBACK_ASPECT, packIntoColumns } from './masonry';
 import {
   clampScale,
   clampTranslate,

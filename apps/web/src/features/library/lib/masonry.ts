@@ -14,10 +14,7 @@ export function columnsForWidth(
   if (containerWidth <= 0 || columnWidth <= 0) {
     return 0;
   }
-  return Math.max(
-    1,
-    Math.floor((containerWidth + gap) / (columnWidth + gap)),
-  );
+  return Math.max(1, Math.floor((containerWidth + gap) / (columnWidth + gap)));
 }
 
 /**

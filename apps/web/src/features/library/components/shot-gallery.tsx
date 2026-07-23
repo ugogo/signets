@@ -1,11 +1,7 @@
 import type { Shot } from '@signets/shared';
 
 import { BookmarkPlus } from 'lucide-react';
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-} from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import { useMemo, useRef } from 'react';
@@ -261,10 +257,7 @@ function GallerySkeleton({
     <div className="flex flex-col gap-3">
       <div className="flex gap-3" ref={gridRef}>
         {Array.from({ length: columnCount }).map((_, columnIndex) => (
-          <div
-            className="flex min-w-0 flex-1 flex-col gap-3"
-            key={columnIndex}
-          >
+          <div className="flex min-w-0 flex-1 flex-col gap-3" key={columnIndex}>
             {Array.from({
               length: rowsPerColumn[columnIndex % rowsPerColumn.length],
             }).map((_, rowIndex) => (
@@ -273,7 +266,9 @@ function GallerySkeleton({
                 key={rowIndex}
                 style={{
                   aspectRatio:
-                    aspectRatios[(columnIndex + rowIndex) % aspectRatios.length],
+                    aspectRatios[
+                      (columnIndex + rowIndex) % aspectRatios.length
+                    ],
                   width: '100%',
                 }}
               />

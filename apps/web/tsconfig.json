@@ -2,7 +2,6 @@
   "include": ["src/**/*.ts", "src/**/*.tsx", ".storybook/**/*.ts", ".storybook/**/*.tsx", "vite.config.ts", "vitest.shims.d.ts"],
   "compilerOptions": {
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
