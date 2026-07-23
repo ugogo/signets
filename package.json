@@ -17,11 +17,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @signets/api db:generate",
-    "db:migrate": "pnpm --filter @signets/api db:migrate"
+    "db:migrate": "pnpm --filter @signets/api db:migrate",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@signets/eslint-config": "workspace:*",
     "eslint": "^9.39.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
     "prettier": "^3.9.6",
     "typescript": "^5.9.3"
   },
