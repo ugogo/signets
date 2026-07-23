@@ -1,14 +1,6 @@
-declare const __SIGNETS_PAGE_INTERCEPTOR_IMPL__: string;
+export const BRIDGE_SECRET = crypto.randomUUID();
 
-const BRIDGE_SECRET = crypto.randomUUID();
-
-function injectPageInterceptor(): void {
-  const script = document.createElement('script');
-  script.textContent = `${__SIGNETS_PAGE_INTERCEPTOR_IMPL__}\nSignetsPageInterceptor.installPageInterceptor(${JSON.stringify(BRIDGE_SECRET)});`;
-  (document.documentElement ?? document.head).appendChild(script);
-  script.remove();
+const root = document.documentElement;
+if (root) {
+  root.dataset.signetsBridge = BRIDGE_SECRET;
 }
-
-injectPageInterceptor();
-
-export { BRIDGE_SECRET };

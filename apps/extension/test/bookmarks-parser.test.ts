@@ -14,6 +14,9 @@ const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 const photoFixture = JSON.parse(
   readFileSync(join(fixtureDir, 'bookmarks-photo.json'), 'utf8'),
 );
+const searchTimelineFixture = JSON.parse(
+  readFileSync(join(fixtureDir, 'bookmarks-search-timeline.json'), 'utf8'),
+);
 
 describe('sortIndexToBookmarkedAt', () => {
   it('derives an ISO timestamp from a Twitter snowflake sort index', () => {
@@ -35,6 +38,13 @@ describe('normalizeBookmarksResponse', () => {
       mediaUrl: 'https://pbs.twimg.com/media/sample.jpg?name=large',
       postId: '1234567890',
     });
+  });
+
+  it('extracts photo shots from BookmarkSearchTimeline responses', () => {
+    const shots = normalizeBookmarksResponse(searchTimelineFixture);
+
+    expect(shots).toHaveLength(1);
+    expect(shots[0]?.postId).toBe('1234567890');
   });
 });
 

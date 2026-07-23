@@ -4,7 +4,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { bearer } from 'better-auth/plugins';
 
-import { type Env, parseWebOrigins } from '../config/env.schema.js';
+import { type Env, parseTrustedOrigins } from '../config/env.schema.js';
 
 export type Auth = ReturnType<typeof createAuth>;
 
@@ -33,6 +33,6 @@ export function createAuth(
         clientSecret: config.GOOGLE_CLIENT_SECRET,
       },
     },
-    trustedOrigins: parseWebOrigins(config.WEB_ORIGIN),
+    trustedOrigins: parseTrustedOrigins(config.WEB_ORIGIN),
   });
 }

@@ -1,0 +1,65 @@
+{
+  "data": {
+    "search_by_raw_query": {
+      "bookmarks_search_timeline": {
+        "timeline": {
+          "instructions": [
+            {
+              "type": "TimelineAddEntries",
+              "entries": [
+                {
+                  "entryId": "tweet-1234567890",
+                  "sortIndex": "1999999999999999999",
+                  "content": {
+                    "entryType": "TimelineTimelineItem",
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1234567890",
+                          "legacy": {
+                            "full_text": "Design inspiration",
+                            "entities": {
+                              "media": [
+                                {
+                                  "id_str": "9876543210",
+                                  "media_url_https": "https://pbs.twimg.com/media/sample.jpg",
+                                  "original_info": {
+                                    "height": 900,
+                                    "width": 1200
+                                  },
+                                  "type": "photo"
+                                }
+                              ]
+                            }
+                          },
+                          "core": {
+                            "user_results": {
+                              "result": {
+                                "core": {
+                                  "name": "Designer",
+                                  "screen_name": "designer"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "cursor-bottom-search",
+                  "content": {
+                    "cursorType": "Bottom",
+                    "entryType": "TimelineTimelineCursor",
+                    "value": "search-cursor"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

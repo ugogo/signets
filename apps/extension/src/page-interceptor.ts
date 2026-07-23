@@ -151,9 +151,14 @@ function collectFetchHeaders(
 }
 
 function isBookmarksApiUrl(requestUrl: string): boolean {
+  if (!/\/i\/api\/graphql\//i.test(requestUrl)) {
+    return false;
+  }
+
   return (
     /\/Bookmarks(?:\?|$)/i.test(requestUrl) ||
-    /BookmarkSearchTimeline/i.test(requestUrl)
+    /BookmarkSearchTimeline/i.test(requestUrl) ||
+    /\/Bookmark/i.test(requestUrl)
   );
 }
 

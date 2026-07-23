@@ -16,6 +16,28 @@ export const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/** Matches any Chrome extension origin (unpacked IDs vary per install). */
+export const CHROME_EXTENSION_ORIGIN_PATTERN = 'chrome-extension://*';
+
+export function isAllowedCorsOrigin(
+  origin: string | undefined,
+  webOrigins: string[],
+): boolean {
+  if (!origin) {
+    return true;
+  }
+
+  if (webOrigins.includes(origin)) {
+    return true;
+  }
+
+  return origin.startsWith('chrome-extension://');
+}
+
+export function parseTrustedOrigins(webOrigin: string): string[] {
+  return [...parseWebOrigins(webOrigin), CHROME_EXTENSION_ORIGIN_PATTERN];
+}
+
 export function parseWebOrigins(webOrigin: string): string[] {
   return webOrigin
     .split(',')

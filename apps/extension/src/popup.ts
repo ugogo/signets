@@ -1,10 +1,11 @@
 import type { SyncState } from './constants.js';
 import type { LogEntry } from './log.js';
 
-import { signInWithGoogle, signOut } from './auth.js';
+import { signOut } from './auth.js';
 import {
   isBackgroundBroadcast,
   isDryRunResponse,
+  isSignInResponse,
   isSyncNowResponse,
   isSyncStateResponse,
 } from './messages.js';
@@ -200,25 +201,31 @@ saveButton.addEventListener('click', () => {
 });
 
 signInButton.addEventListener('click', () => {
-  void (async () => {
-    signInButton.disabled = true;
-    setStatus('Opening Google sign-in…');
+  signInButton.disabled = true;
+  setStatus('Opening Google sign-in…');
 
-    try {
-      const settings = await loadSettings();
-      const sessionToken = await signInWithGoogle(settings.apiUrl);
-      await chrome.storage.sync.set({ sessionToken });
-      await refreshAuthUi();
-      setStatus('Signed in.', 'success');
-    } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : 'Sign-in failed.',
-        'error',
-      );
-    } finally {
-      signInButton.disabled = false;
+  chrome.runtime.sendMessage({ type: 'sign-in-with-google' }, (response) => {
+    signInButton.disabled = false;
+
+    if (chrome.runtime.lastError) {
+      setStatus(chrome.runtime.lastError.message ?? 'Sign-in failed.', 'error');
+      return;
     }
-  })();
+
+    if (!isSignInResponse(response)) {
+      setStatus('Sign-in failed.', 'error');
+      return;
+    }
+
+    if (!response.ok) {
+      setStatus(response.error, 'error');
+      return;
+    }
+
+    void refreshAuthUi().then(() => {
+      setStatus('Signed in.', 'success');
+    });
+  });
 });
 
 signOutButton.addEventListener('click', () => {
@@ -312,6 +319,20 @@ chrome.runtime.onMessage.addListener((message) => {
     if (message.state === 'scrolling') {
       setStatus('Fetching bookmarks…');
     }
+    return;
+  }
+
+  if (message.type === 'sign-in-complete') {
+    signInButton.disabled = false;
+
+    if (message.ok) {
+      void refreshAuthUi().then(() => {
+        setStatus('Signed in.', 'success');
+      });
+      return;
+    }
+
+    setStatus(message.error ?? 'Sign-in failed.', 'error');
   }
 });
 

@@ -82,13 +82,16 @@ type MediaSize = {
 
 type TimelineEntry = {
   content?: {
+    cursorType?: string;
     entryType?: string;
     itemContent?: {
       tweet_results?: {
         result?: TweetResultWrapper;
       };
     };
+    value?: string;
   };
+  entryId?: string;
   sortIndex?: string;
 };
 
@@ -262,6 +265,18 @@ function getTimelineInstructions(
   return [];
 }
 
+function isCursorTimelineEntry(entry: TimelineEntry): boolean {
+  if (entry.entryId?.startsWith('cursor-')) {
+    return true;
+  }
+
+  const content = entry.content;
+  return (
+    content?.entryType === 'TimelineTimelineCursor' ||
+    Boolean(content?.cursorType)
+  );
+}
+
 function mediaToShot(
   media: BookmarkMedia,
   tweet: BookmarkTweet,
@@ -367,10 +382,7 @@ function shotsFromEntries(entries: TimelineEntry[]): SyncShotInput[] {
   const shots: SyncShotInput[] = [];
 
   for (const entry of entries) {
-    if (
-      entry.content?.entryType &&
-      entry.content.entryType !== 'TimelineTimelineItem'
-    ) {
+    if (isCursorTimelineEntry(entry)) {
       continue;
     }
 
@@ -411,12 +423,13 @@ function unwrapTweet(
     return undefined;
   }
 
+  const nestedTweet =
+    result.tweet?.rest_id && result.tweet.legacy ? result.tweet : undefined;
   const candidate =
-    result.__typename === 'TweetWithVisibilityResults' && result.tweet
+    nestedTweet ??
+    (result.__typename === 'TweetWithVisibilityResults' && result.tweet
       ? result.tweet
-      : result.tweet?.rest_id
-        ? result.tweet
-        : result;
+      : result);
 
   if (candidate.rest_id && candidate.legacy) {
     return candidate;

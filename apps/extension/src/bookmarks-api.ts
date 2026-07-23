@@ -1,5 +1,6 @@
 export type BookmarksRequestParams = {
   features: Record<string, unknown>;
+  fieldToggles?: Record<string, unknown>;
   headers: Record<string, string>;
   operation: string;
   queryId: string;
@@ -10,23 +11,23 @@ type CursorTimelineBody = {
   data?: {
     bookmark_timeline_v2?: {
       timeline?: {
-        instructions?: Array<{
-          entries?: TimelineCursorEntry[];
-          type?: string;
-        }>;
+        instructions?: CursorTimelineInstruction[];
       };
     };
     search_by_raw_query?: {
       bookmarks_search_timeline?: {
         timeline?: {
-          instructions?: Array<{
-            entries?: TimelineCursorEntry[];
-            type?: string;
-          }>;
+          instructions?: CursorTimelineInstruction[];
         };
       };
     };
   };
+};
+
+type CursorTimelineInstruction = {
+  entries?: TimelineCursorEntry[];
+  entry?: TimelineCursorEntry;
+  type?: string;
 };
 
 type TimelineCursorEntry = {
@@ -37,7 +38,7 @@ type TimelineCursorEntry = {
   entryId?: string;
 };
 
-const BOOKMARKS_PAGE_SIZE = 100;
+const DEFAULT_BOOKMARKS_PAGE_SIZE = 100;
 
 export function buildBookmarksRequestUrl(
   params: Omit<BookmarksRequestParams, 'headers'>,
@@ -45,7 +46,6 @@ export function buildBookmarksRequestUrl(
 ): string {
   const variables: Record<string, unknown> = {
     ...params.variables,
-    count: BOOKMARKS_PAGE_SIZE,
   };
 
   if (cursor) {
@@ -54,39 +54,37 @@ export function buildBookmarksRequestUrl(
     delete variables.cursor;
   }
 
+  if (variables.count === undefined) {
+    variables.count = DEFAULT_BOOKMARKS_PAGE_SIZE;
+  }
+
   const url = new URL(
     `https://x.com/i/api/graphql/${params.queryId}/${params.operation}`,
   );
   url.searchParams.set('variables', JSON.stringify(variables));
   url.searchParams.set('features', JSON.stringify(params.features));
+  if (params.fieldToggles) {
+    url.searchParams.set('fieldToggles', JSON.stringify(params.fieldToggles));
+  }
   return url.toString();
 }
 
 export function extractBottomCursor(body: unknown): string | undefined {
-  const timelineBody = body as CursorTimelineBody;
-  const instructions =
-    timelineBody.data?.bookmark_timeline_v2?.timeline?.instructions ??
-    timelineBody.data?.search_by_raw_query?.bookmarks_search_timeline?.timeline
-      ?.instructions ??
-    [];
+  const entries = collectTimelineEntries(body as CursorTimelineBody);
+  let bottomCursor: string | undefined;
 
-  for (const instruction of instructions) {
-    if (instruction.type !== 'TimelineAddEntries') {
+  for (const entry of entries) {
+    const value = entry.content?.value;
+    if (typeof value !== 'string' || value.length === 0) {
       continue;
     }
 
-    for (const entry of instruction.entries ?? []) {
-      if (
-        entry.entryId?.startsWith('cursor-bottom') &&
-        typeof entry.content?.value === 'string' &&
-        entry.content.value.length > 0
-      ) {
-        return entry.content.value;
-      }
+    if (isBottomCursorEntry(entry)) {
+      bottomCursor = value;
     }
   }
 
-  return undefined;
+  return bottomCursor;
 }
 
 export function parseBookmarksRequestUrl(
@@ -105,14 +103,26 @@ export function parseBookmarksRequestUrl(
   }
 
   const variablesRaw = parsed.searchParams.get('variables');
-  const featuresRaw = parsed.searchParams.get('features');
-  if (!variablesRaw || !featuresRaw) {
+  if (!variablesRaw) {
     return null;
   }
 
+  const featuresRaw = parsed.searchParams.get('features');
+  const fieldTogglesRaw = parsed.searchParams.get('fieldToggles');
+
   try {
     return {
-      features: JSON.parse(featuresRaw) as Record<string, unknown>,
+      features: featuresRaw
+        ? (JSON.parse(featuresRaw) as Record<string, unknown>)
+        : {},
+      ...(fieldTogglesRaw
+        ? {
+            fieldToggles: JSON.parse(fieldTogglesRaw) as Record<
+              string,
+              unknown
+            >,
+          }
+        : {}),
       operation: match[2]!,
       queryId: match[1]!,
       variables: JSON.parse(variablesRaw) as Record<string, unknown>,
@@ -120,4 +130,35 @@ export function parseBookmarksRequestUrl(
   } catch {
     return null;
   }
+}
+
+function collectTimelineEntries(
+  body: CursorTimelineBody,
+): TimelineCursorEntry[] {
+  const instructions =
+    body.data?.bookmark_timeline_v2?.timeline?.instructions ??
+    body.data?.search_by_raw_query?.bookmarks_search_timeline?.timeline
+      ?.instructions ??
+    [];
+
+  const entries: TimelineCursorEntry[] = [];
+
+  for (const instruction of instructions) {
+    if (instruction.entries?.length) {
+      entries.push(...instruction.entries);
+    }
+
+    if (instruction.entry) {
+      entries.push(instruction.entry);
+    }
+  }
+
+  return entries;
+}
+
+function isBottomCursorEntry(entry: TimelineCursorEntry): boolean {
+  return (
+    entry.entryId?.startsWith('cursor-bottom') === true ||
+    entry.content?.cursorType === 'Bottom'
+  );
 }

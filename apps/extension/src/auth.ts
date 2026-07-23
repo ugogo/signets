@@ -1,14 +1,23 @@
+import { appendLog } from './log.js';
+
 const SESSION_TOKEN_PARAM = 'session_token';
 
 export async function signInWithGoogle(apiUrl: string): Promise<string> {
   const extensionRedirect = chrome.identity.getRedirectURL('oauth');
+  appendLog(
+    'info',
+    `Extension OAuth redirect: ${extensionRedirect.replace(/^https:\/\//, '')}`,
+  );
+
   const callbackURL = new URL('/auth/extension/callback', apiUrl);
   callbackURL.searchParams.set('redirect', extensionRedirect);
 
+  appendLog('info', 'Requesting Google authorization URL…');
   const oauthUrl = await fetchSocialAuthorizationUrl(
     apiUrl,
     callbackURL.toString(),
   );
+  appendLog('info', 'Opening Google sign-in window…');
   const responseUrl = await launchWebAuthFlow(oauthUrl);
   const callbackUrl = new URL(responseUrl);
 

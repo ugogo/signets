@@ -1,5 +1,6 @@
 import type { SyncPayload, SyncResult } from '@signets/shared';
 
+import { signInWithGoogle } from './auth.js';
 import { BOOKMARKS_URL, SYNC_BATCH_SIZE, type SyncState } from './constants.js';
 import { appendLog, clearLogs, getLogs } from './log.js';
 import {
@@ -26,11 +27,21 @@ let syncState: SyncState = 'idle';
 let activeSyncTabId: number | undefined;
 let stopRequested = false;
 let syncInProgress = false;
+let signInInProgress = false;
+
+function broadcastSignInComplete(result: {
+  error?: string;
+  ok: boolean;
+}): void {
+  void chrome.runtime
+    .sendMessage({ ...result, type: 'sign-in-complete' })
+    .catch(() => undefined);
+}
 
 async function captureBookmarks(
   label: string,
   lastBookmarkSyncAt?: null | string,
-): Promise<CaptureResult> {
+): Promise<CaptureResult & { error?: string }> {
   appendLog('info', `${label}: opening bookmarks page…`);
 
   const tab = await findOrOpenBookmarksTab();
@@ -52,7 +63,7 @@ async function captureBookmarks(
   await waitForTabLoad(tab.id);
   await sleep(1500);
 
-  let scrollResult: { count: number; stopped: boolean };
+  let scrollResult: { count: number; error?: string; stopped: boolean };
   try {
     scrollResult = await runAutoScroll(tab.id, lastBookmarkSyncAt);
   } catch {
@@ -61,6 +72,10 @@ async function captureBookmarks(
       'Could not connect to bookmarks page. Reload and retry.',
     );
     throw new Error('Could not connect to bookmarks page. Reload and retry.');
+  }
+
+  if (scrollResult.error) {
+    appendLog('warn', scrollResult.error);
   }
 
   if (scrollResult.stopped || stopRequested) {
@@ -147,7 +162,7 @@ function isBookmarksUrl(url: string | undefined): boolean {
 async function runAutoScroll(
   tabId: number,
   lastBookmarkSyncAt?: null | string,
-): Promise<{ count: number; stopped: boolean }> {
+): Promise<{ count: number; error?: string; stopped: boolean }> {
   activeSyncTabId = tabId;
   setSyncState('scrolling');
 
@@ -182,9 +197,15 @@ async function runDryRun(
     const shots = await getCapturedShots(capture.tabId);
 
     if (shots.length === 0) {
-      appendLog('warn', 'No shots found in bookmarks.');
+      appendLog(
+        'warn',
+        capture.error ??
+          'No shots found. Log into X and bookmark some media posts.',
+      );
       sendResponse({
-        error: 'No shots found. Log into X and bookmark some media posts.',
+        error:
+          capture.error ??
+          'No shots found. Log into X and bookmark some media posts.',
         ok: false,
       });
       return;
@@ -209,6 +230,36 @@ async function runDryRun(
     stopRequested = false;
     activeSyncTabId = undefined;
     setSyncState('idle');
+  }
+}
+
+async function runSignIn(
+  sendResponse: (response: unknown) => void,
+): Promise<void> {
+  if (signInInProgress) {
+    sendResponse({ error: 'Sign-in already in progress.', ok: false });
+    return;
+  }
+
+  signInInProgress = true;
+  appendLog('info', 'Starting Google sign-in…');
+
+  try {
+    const settings = await loadSettings();
+    appendLog('info', `Sign-in API: ${settings.apiUrl}`);
+    const sessionToken = await signInWithGoogle(settings.apiUrl);
+    await chrome.storage.sync.set({ sessionToken });
+    appendLog('success', 'Google sign-in completed.');
+    sendResponse({ ok: true });
+    broadcastSignInComplete({ ok: true });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Sign-in failed unexpectedly.';
+    appendLog('error', `Google sign-in failed: ${message}`);
+    sendResponse({ error: message, ok: false });
+    broadcastSignInComplete({ error: message, ok: false });
+  } finally {
+    signInInProgress = false;
   }
 }
 
@@ -240,6 +291,12 @@ async function runSync(
     appendLog('info', 'Verifying session…');
     await verifySyncCredentials(settings);
     const syncState = await fetchSyncState(settings);
+    appendLog(
+      'info',
+      syncState.lastBookmarkSyncAt
+        ? `Server watermark: ${syncState.lastBookmarkSyncAt}`
+        : 'Server watermark: none (first sync).',
+    );
 
     const capture = await captureBookmarks(
       'Sync',
@@ -247,6 +304,12 @@ async function runSync(
     );
 
     if (capture.count === 0) {
+      if (capture.error) {
+        appendLog('warn', capture.error);
+        sendResponse({ error: capture.error, ok: false });
+        return;
+      }
+
       if (syncState.lastBookmarkSyncAt) {
         appendLog('success', 'Already up to date — nothing new to sync.');
         sendResponse({
@@ -416,16 +479,32 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'bookmarks-intercepted') {
-    const detail =
+    const detailParts = [
+      message.source ? `via ${message.source}` : undefined,
+      message.page !== undefined ? `page ${message.page}` : undefined,
       message.newShots === undefined
-        ? `${message.entries} entries, ${message.parsed} shots, ${message.total} total`
-        : `${message.entries} entries, ${message.newShots} new / ${message.parsed} parsed, ${message.total} total`;
-    appendLog('info', `Intercepted bookmarks API (${detail}).`);
+        ? `${message.entries} entries, ${message.parsed} media, ${message.total} total`
+        : `${message.entries} entries, ${message.newShots} new / ${message.parsed} media, ${message.total} total`,
+      message.hasMore === false
+        ? 'end of timeline'
+        : message.cursorPreview
+          ? `next cursor ${message.cursorPreview}`
+          : undefined,
+    ].filter((part): part is string => Boolean(part));
+    appendLog('info', `Bookmarks API — ${detailParts.join(', ')}.`);
+    return;
+  }
+
+  if (message.type === 'capture-log') {
+    appendLog(message.level, message.message);
     return;
   }
 
   if (message.type === 'shots-captured') {
-    appendLog('info', `Fetching… ${message.count} new shots captured.`);
+    appendLog(
+      'info',
+      `${message.count} shot${message.count === 1 ? '' : 's'} captured so far.`,
+    );
     return;
   }
 
@@ -453,6 +532,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === 'sync-now') {
     void runSync(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'sign-in-with-google') {
+    void runSignIn(sendResponse);
     return true;
   }
 

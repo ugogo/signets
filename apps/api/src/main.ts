@@ -3,7 +3,11 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module.js';
-import { type Env, parseWebOrigins } from './config/env.schema.js';
+import {
+  type Env,
+  isAllowedCorsOrigin,
+  parseWebOrigins,
+} from './config/env.schema.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -23,7 +27,9 @@ async function bootstrap() {
 
   app.enableCors({
     credentials: true,
-    origin: webOrigins,
+    origin: (origin, callback) => {
+      callback(null, isAllowedCorsOrigin(origin, webOrigins));
+    },
   });
 
   const port = config.get('PORT', { infer: true });

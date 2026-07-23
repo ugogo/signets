@@ -8,9 +8,9 @@ import {
 import {
   countTimelineEntries,
   filterShotsNewerThanLastSync,
-  isAtOrBeforeLastSync,
   normalizeBookmarksResponse,
 } from './bookmarks-parser.js';
+import { formatCursorPreview, logCapture } from './capture-log.js';
 import {
   BOOKMARKS_REQUEST_EVENT,
   BOOKMARKS_RESPONSE_EVENT,
@@ -36,6 +36,9 @@ let activeLastBookmarkSyncAt: null | string = null;
 let lastBottomCursor: string | undefined;
 let capturedRequestParams: BookmarksRequestParams | undefined;
 let reachedLastBookmarkSync = false;
+let capturePageNumber = 0;
+let ignoreScrollIntercepts = false;
+let lastLoggedQueryKey: string | undefined;
 
 function addCapturedShots(shots: SyncShotInput[]): void {
   for (const shot of shots) {
@@ -53,16 +56,24 @@ function addCapturedShots(shots: SyncShotInput[]): void {
 }
 
 function emitBookmarksIntercepted(result: {
+  cursorPreview?: string;
   entries: number;
+  hasMore?: boolean;
   newShots: number;
+  page?: number;
   parsed: number;
+  source?: 'fetch' | 'intercept' | 'pending';
 }): void {
   void chrome.runtime.sendMessage({
+    cursorPreview: result.cursorPreview,
     entries: result.entries,
+    hasMore: result.hasMore,
+    page: result.page,
     parsed: result.parsed,
     total: capturedShots.length,
     type: 'bookmarks-intercepted',
     ...(activeLastBookmarkSyncAt ? { newShots: result.newShots } : {}),
+    ...(result.source ? { source: result.source } : {}),
   });
 }
 
@@ -70,7 +81,7 @@ function flushPendingBookmarkBodies(): void {
   while (pendingBookmarkBodies.length > 0) {
     const body = pendingBookmarkBodies.shift();
     if (body) {
-      processBookmarksBody(body);
+      processBookmarksBody(body, 'pending');
     }
   }
 }
@@ -79,6 +90,7 @@ function ingestBookmarksBody(body: unknown): {
   entries: number;
   newShots: number;
   parsed: number;
+  skipped?: boolean;
 } {
   bookmarksResponseSeen = true;
 
@@ -90,8 +102,27 @@ function ingestBookmarksBody(body: unknown): {
       parsedShots,
       activeLastBookmarkSyncAt,
     );
+    const nextCursor = extractBottomCursor(typedBody);
+    const isDuplicatePage =
+      capturePageNumber > 0 &&
+      parsedShots.length > 0 &&
+      newShots.length === 0 &&
+      nextCursor === lastBottomCursor;
 
-    lastBottomCursor = extractBottomCursor(typedBody);
+    if (isDuplicatePage) {
+      logCapture(
+        'info',
+        `Skipping duplicate bookmarks page (cursor ${formatCursorPreview(nextCursor)}).`,
+      );
+      return {
+        entries,
+        newShots: 0,
+        parsed: parsedShots.length,
+        skipped: true,
+      };
+    }
+
+    lastBottomCursor = nextCursor;
 
     if (
       activeLastBookmarkSyncAt &&
@@ -121,8 +152,17 @@ function isTrustedBridgeSecret(value: unknown): value is string {
   return typeof value === 'string' && value === BRIDGE_SECRET;
 }
 
-function processBookmarksBody(body: unknown): void {
-  emitBookmarksIntercepted(ingestBookmarksBody(body));
+function processBookmarksBody(
+  body: unknown,
+  source: 'fetch' | 'intercept' | 'pending' = 'intercept',
+): void {
+  const result = ingestBookmarksBody(body);
+  if (result.skipped) {
+    return;
+  }
+
+  capturePageNumber += 1;
+  reportBookmarksPage(result, source);
 }
 
 function readTrustedBookmarksBody(detail: unknown): unknown {
@@ -153,15 +193,46 @@ function readTrustedRequestParams(
   return record;
 }
 
+function rememberRequestParams(
+  params: Omit<BookmarksRequestParams, 'headers'>,
+): void {
+  const queryKey = `${params.operation}:${params.queryId}`;
+  if (queryKey !== lastLoggedQueryKey) {
+    lastLoggedQueryKey = queryKey;
+    logCapture(
+      'info',
+      `Captured bookmarks API params (${params.operation}, query ${params.queryId.slice(0, 8)}…).`,
+    );
+  }
+}
+
+function reportBookmarksPage(
+  result: {
+    entries: number;
+    newShots: number;
+    parsed: number;
+  },
+  source: 'fetch' | 'intercept' | 'pending',
+): void {
+  emitBookmarksIntercepted({
+    ...result,
+    cursorPreview: formatCursorPreview(lastBottomCursor),
+    hasMore: Boolean(lastBottomCursor),
+    page: capturePageNumber,
+    source,
+  });
+}
+
 function resetCaptureState(lastBookmarkSyncAt?: null | string): void {
   capturedShots.length = 0;
   activeLastBookmarkSyncAt = lastBookmarkSyncAt ?? null;
   bookmarksResponseSeen = false;
   lastBottomCursor = undefined;
-  capturedRequestParams = undefined;
   reachedLastBookmarkSync = false;
   captureAborted = false;
   captureReady = false;
+  capturePageNumber = 0;
+  ignoreScrollIntercepts = false;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -176,17 +247,43 @@ window.addEventListener(BOOKMARKS_RESPONSE_EVENT, (event) => {
 
   if (!captureReady) {
     pendingBookmarkBodies.push(body);
+    if (pendingBookmarkBodies.length === 1) {
+      logCapture(
+        'info',
+        `Queued bookmarks response until capture starts (${pendingBookmarkBodies.length} pending).`,
+      );
+    }
     return;
   }
 
-  processBookmarksBody(body);
+  if (ignoreScrollIntercepts) {
+    return;
+  }
+
+  processBookmarksBody(body, 'intercept');
 });
 
 window.addEventListener(BOOKMARKS_REQUEST_EVENT, (event) => {
   const params = readTrustedRequestParams((event as CustomEvent).detail);
-  if (params) {
-    capturedRequestParams = params;
+  if (!params) {
+    return;
   }
+
+  if (capturedRequestParams) {
+    capturedRequestParams = {
+      ...capturedRequestParams,
+      features: params.features,
+      ...(params.fieldToggles ? { fieldToggles: params.fieldToggles } : {}),
+      headers: params.headers,
+      operation: params.operation,
+      queryId: params.queryId,
+      variables: params.variables,
+    };
+    return;
+  }
+
+  capturedRequestParams = { ...params, headers: params.headers };
+  rememberRequestParams(params);
 });
 
 function abortCapture(): void {
@@ -196,22 +293,60 @@ function abortCapture(): void {
 
 async function captureAllBookmarks(
   lastBookmarkSyncAt?: null | string,
-): Promise<{ count: number; stopped: boolean }> {
+): Promise<{ count: number; error?: string; stopped: boolean }> {
   resetCaptureState(lastBookmarkSyncAt);
+  logCapture(
+    'info',
+    lastBookmarkSyncAt
+      ? `Capture started (incremental watermark ${lastBookmarkSyncAt}).`
+      : 'Capture started (full sync).',
+  );
   captureReady = true;
+  const pendingCount = pendingBookmarkBodies.length;
+  if (pendingCount > 0) {
+    logCapture(
+      'info',
+      `Processing ${pendingCount} queued bookmarks response${pendingCount === 1 ? '' : 's'}.`,
+    );
+  }
   flushPendingBookmarkBodies();
   showSyncOverlay(requestStopCapture);
   updateSyncOverlay(capturedShots.length);
 
   try {
     let params = capturedRequestParams;
-    if (!params) {
+    if (!params && !bookmarksResponseSeen) {
+      logCapture('info', 'Waiting for X bookmarks API request…');
       try {
         params = await waitForRequestParams(REQUEST_PARAMS_TIMEOUT_MS);
       } catch {
-        return { count: capturedShots.length, stopped: captureAborted };
+        logCapture('error', 'Timed out waiting for bookmarks API request.');
+        return {
+          count: capturedShots.length,
+          error:
+            'Timed out waiting for X bookmarks API. Make sure you are logged into x.com, then try again.',
+          stopped: captureAborted,
+        };
       }
     }
+
+    if (!params) {
+      logCapture(
+        'error',
+        'Captured bookmarks but API params are missing — cannot paginate.',
+      );
+      return {
+        count: capturedShots.length,
+        error:
+          'Bookmarks were captured but pagination params were lost. Reload and try again.',
+        stopped: captureAborted,
+      };
+    }
+
+    logCapture(
+      'info',
+      `Using ${params.operation} (count ${String(params.variables.count ?? 'default')}).`,
+    );
 
     for (
       let attempt = 0;
@@ -221,54 +356,38 @@ async function captureAllBookmarks(
       await sleep(300);
     }
 
+    if (!bookmarksResponseSeen && capturedShots.length === 0) {
+      logCapture('error', 'No bookmarks API responses captured on first page.');
+      return {
+        count: capturedShots.length,
+        error:
+          'X bookmarks API responses were not captured. Reload the extension and try again.',
+        stopped: captureAborted,
+      };
+    }
+
+    logCapture(
+      'info',
+      `First page ready — ${capturedShots.length} shot${capturedShots.length === 1 ? '' : 's'}, next cursor ${formatCursorPreview(lastBottomCursor)}.`,
+    );
+
     if (reachedLastBookmarkSync) {
+      logCapture('info', 'Reached incremental sync watermark on first page.');
       return { count: capturedShots.length, stopped: captureAborted };
     }
 
-    let cursor = lastBottomCursor;
-    let idlePages = 0;
-
-    while (!captureAborted && idlePages < 3 && cursor) {
-      const beforeCount = capturedShots.length;
-      const previousCursor = cursor;
-
-      try {
-        const body = await fetchBookmarksPage(params, cursor);
-        const pageResult = ingestBookmarksBody(body);
-        emitBookmarksIntercepted(pageResult);
-
-        if (
-          activeLastBookmarkSyncAt &&
-          (reachedLastBookmarkSync ||
-            isAtOrBeforeLastSync(
-              normalizeBookmarksResponse(
-                body as Parameters<typeof normalizeBookmarksResponse>[0],
-              ),
-              activeLastBookmarkSyncAt,
-            ))
-        ) {
-          break;
-        }
-      } catch (error) {
-        throw error instanceof Error
-          ? error
-          : new Error('Failed to fetch bookmarks page.');
-      }
-
-      cursor = lastBottomCursor;
-
-      if (
-        capturedShots.length === beforeCount ||
-        !cursor ||
-        cursor === previousCursor
-      ) {
-        idlePages += 1;
-      } else {
-        idlePages = 0;
-      }
-
-      await sleep(PAGE_FETCH_DELAY_MS);
+    if (!lastBottomCursor) {
+      logCapture('info', 'No bottom cursor — single-page bookmarks timeline.');
+    } else {
+      logCapture('info', 'Paginating remaining bookmark pages…');
     }
+
+    await paginateRemainingBookmarks(params);
+
+    logCapture(
+      'success',
+      `Capture finished — ${capturedShots.length} shot${capturedShots.length === 1 ? '' : 's'} across ${capturePageNumber} page${capturePageNumber === 1 ? '' : 's'}.`,
+    );
 
     return { count: capturedShots.length, stopped: captureAborted };
   } finally {
@@ -296,6 +415,10 @@ async function fetchBookmarksPage(
       Number.isFinite(retryAfter) && retryAfter > 0
         ? retryAfter * 1000
         : 15_000;
+    logCapture(
+      'warn',
+      `Bookmarks API rate limited — retrying in ${Math.round(waitMs / 1000)}s (attempt ${rateLimitRetries + 1}/${MAX_429_RETRIES}).`,
+    );
     await sleep(waitMs);
     return fetchBookmarksPage(params, cursor, rateLimitRetries + 1);
   }
@@ -307,10 +430,107 @@ async function fetchBookmarksPage(
   return response.json();
 }
 
+async function paginateRemainingBookmarks(
+  params: BookmarksRequestParams,
+): Promise<void> {
+  while (!captureAborted && lastBottomCursor) {
+    if (reachedLastBookmarkSync) {
+      logCapture(
+        'info',
+        'Stopping pagination — reached incremental watermark.',
+      );
+      break;
+    }
+
+    const previousCursor = lastBottomCursor;
+    const previousPage = capturePageNumber;
+    const nextPage = capturePageNumber + 1;
+
+    logCapture(
+      'info',
+      `Fetching page ${nextPage} (cursor ${formatCursorPreview(previousCursor)})…`,
+    );
+
+    let advanced = false;
+
+    try {
+      ignoreScrollIntercepts = true;
+      const body = await fetchBookmarksPage(params, previousCursor);
+      processBookmarksBody(body, 'fetch');
+      advanced =
+        capturePageNumber > previousPage || lastBottomCursor !== previousCursor;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Direct fetch failed.';
+      logCapture(
+        'info',
+        `Direct fetch failed (${message}) — trying scroll fallback…`,
+      );
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      advanced = await waitForBookmarkProgress(
+        previousCursor,
+        8_000,
+        previousPage,
+      );
+    } finally {
+      ignoreScrollIntercepts = false;
+    }
+
+    if (reachedLastBookmarkSync) {
+      logCapture(
+        'info',
+        'Stopping pagination — reached incremental watermark.',
+      );
+      break;
+    }
+
+    if (!lastBottomCursor) {
+      logCapture('info', 'Stopping pagination — no bottom cursor in response.');
+      break;
+    }
+
+    if (!advanced || lastBottomCursor === previousCursor) {
+      logCapture(
+        'info',
+        'Stopping pagination — cursor unchanged (end of bookmarks).',
+      );
+      break;
+    }
+
+    await sleep(PAGE_FETCH_DELAY_MS);
+  }
+}
+
 function requestStopCapture(): void {
   abortCapture();
   // Notify the background so the side panel reflects the stop immediately.
   void chrome.runtime.sendMessage({ type: 'stop-sync' }).catch(() => undefined);
+}
+
+async function waitForBookmarkProgress(
+  previousCursor: string,
+  timeoutMs: number,
+  previousPage = capturePageNumber,
+): Promise<boolean> {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (captureAborted || reachedLastBookmarkSync) {
+      return true;
+    }
+
+    if (capturePageNumber > previousPage) {
+      return true;
+    }
+
+    if (lastBottomCursor && lastBottomCursor !== previousCursor) {
+      return true;
+    }
+
+    await sleep(300);
+  }
+
+  return false;
 }
 
 function waitForRequestParams(
@@ -349,6 +569,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'clear-captured-shots') {
     resetCaptureState();
     pendingBookmarkBodies.length = 0;
+    capturedRequestParams = undefined;
+    lastLoggedQueryKey = undefined;
     sendResponse({ ok: true });
     return;
   }
