@@ -2,24 +2,36 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Button } from 'pickle-ui/button';
 import { Text } from 'pickle-ui/text';
 import { useState } from 'react';
+import { z } from 'zod';
 
+import { AuthPending } from '@/components/auth-pending';
 import { getSession, signInWithGoogle } from '@/lib/auth-client';
+import { sanitizeRedirect } from '@/lib/auth-redirect';
+
+const loginSearchSchema = z.object({
+  redirect: z
+    .string()
+    .optional()
+    .transform((value) => sanitizeRedirect(value)),
+});
 
 export const Route = createFileRoute('/login')({
-  beforeLoad: async () => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+  beforeLoad: async ({ search }) => {
     const session = await getSession();
     if (session) {
-      throw redirect({ to: '/' });
+      throw redirect({ href: search.redirect });
     }
   },
   component: LoginPage,
+  pendingComponent: AuthPending,
+  pendingMs: 0,
+  // Session cookies live on the API origin — auth must run on the client.
+  ssr: false,
+  validateSearch: loginSearchSchema,
 });
 
 function LoginPage() {
+  const { redirect: redirectTo } = Route.useSearch();
   const [error, setError] = useState<null | string>(null);
   const [pending, setPending] = useState(false);
 
@@ -28,7 +40,7 @@ function LoginPage() {
     setError(null);
 
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(redirectTo);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Sign-in failed. Try again.',

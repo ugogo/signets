@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useQueryStates } from 'nuqs';
 import { useCallback, useMemo, useState } from 'react';
 
+import { AuthPending } from '@/components/auth-pending';
 import { LibraryShell } from '@/features/library/components/library-shell';
 import { ShotCanvas } from '@/features/library/components/shot-canvas';
 import { ShotDetailDialog } from '@/features/library/components/shot-detail-dialog';
@@ -22,25 +23,29 @@ import {
   useToggleShotFavorite,
 } from '@/features/library/lib/shot-mutations';
 import { getSession } from '@/lib/auth-client';
+import { sanitizeRedirect } from '@/lib/auth-redirect';
 import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '@/lib/motion';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
-  beforeLoad: async () => {
-    // Session cookies live on the API origin; skip SSR checks on the web worker.
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+  beforeLoad: async ({ location }) => {
     const session = await getSession();
     if (!session) {
-      throw redirect({ to: '/login' });
+      throw redirect({
+        search: {
+          redirect: sanitizeRedirect(location.href),
+        },
+        to: '/login',
+      });
     }
   },
   component: Home,
+  pendingComponent: AuthPending,
+  pendingMs: 0,
+  // Session cookies live on the API origin — auth must run on the client.
+  ssr: false,
   validateSearch: librarySearchSchema,
 });
-
 function Home() {
   const [filters, setFilters] = useQueryStates(librarySearchParams);
   const { author, density, favorites, search, viewMode } = filters;

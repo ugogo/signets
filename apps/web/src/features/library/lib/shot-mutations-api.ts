@@ -2,11 +2,10 @@ import type { Shot } from '@signets/shared';
 
 import { shotSchema } from '@signets/shared';
 
-import { apiFetchOptions, apiUrl } from '@/lib/api-fetch';
+import { apiFetch, apiUrl } from '@/lib/api-fetch';
 
 export async function deleteShot(id: string): Promise<void> {
-  const response = await fetch(apiUrl(`/shots/${id}`), {
-    ...apiFetchOptions,
+  const response = await apiFetch(apiUrl(`/shots/${id}`), {
     method: 'DELETE',
   });
 
@@ -16,8 +15,7 @@ export async function deleteShot(id: string): Promise<void> {
 }
 
 export async function toggleShotFavorite(id: string): Promise<Shot> {
-  const response = await fetch(apiUrl(`/shots/${id}/favorite`), {
-    ...apiFetchOptions,
+  const response = await apiFetch(apiUrl(`/shots/${id}/favorite`), {
     method: 'PATCH',
   });
 

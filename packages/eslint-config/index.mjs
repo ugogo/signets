@@ -94,7 +94,15 @@ export function createSignetsEslintConfig() {
         ...reactHooks.configs.recommended.rules,
         'react-refresh/only-export-components': [
           'warn',
-          { allowConstantExport: true },
+          {
+            allowConstantExport: true,
+            // TanStack Router/Start route files export `Route` beside components.
+            extraHOCs: [
+              'createFileRoute',
+              'createRootRoute',
+              'createRootRouteWithContext',
+            ],
+          },
         ],
         'react/react-in-jsx-scope': 'off',
       },
