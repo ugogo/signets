@@ -5,11 +5,11 @@ export async function signInWithGoogle(apiUrl: string): Promise<string> {
   const callbackURL = new URL('/auth/extension/callback', apiUrl);
   callbackURL.searchParams.set('redirect', extensionRedirect);
 
-  const authUrl = new URL('/api/auth/sign-in/social', apiUrl);
-  authUrl.searchParams.set('provider', 'google');
-  authUrl.searchParams.set('callbackURL', callbackURL.toString());
-
-  const responseUrl = await launchWebAuthFlow(authUrl.toString());
+  const oauthUrl = await fetchSocialAuthorizationUrl(
+    apiUrl,
+    callbackURL.toString(),
+  );
+  const responseUrl = await launchWebAuthFlow(oauthUrl);
   const callbackUrl = new URL(responseUrl);
 
   const error = callbackUrl.searchParams.get('error');
@@ -34,6 +34,34 @@ export async function signInWithGoogle(apiUrl: string): Promise<string> {
 
 export async function signOut(): Promise<void> {
   await chrome.storage.sync.remove('sessionToken');
+}
+
+async function fetchSocialAuthorizationUrl(
+  apiUrl: string,
+  callbackURL: string,
+): Promise<string> {
+  const response = await fetch(`${apiUrl}/api/auth/sign-in/social`, {
+    body: JSON.stringify({
+      callbackURL,
+      disableRedirect: true,
+      provider: 'google',
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Sign-in failed (HTTP ${response.status}). Try again.`);
+  }
+
+  const body = (await response.json()) as { url?: string };
+  if (!body.url) {
+    throw new Error('Sign-in failed: no authorization URL returned.');
+  }
+
+  return body.url;
 }
 
 function launchWebAuthFlow(url: string): Promise<string> {

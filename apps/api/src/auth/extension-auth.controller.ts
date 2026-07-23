@@ -41,7 +41,7 @@ export class ExtensionAuthController {
     }
 
     const successUrl = new URL(target);
-    successUrl.searchParams.set('session_token', session.session.token);
+    successUrl.hash = `session_token=${encodeURIComponent(session.session.token)}`;
     res.redirect(successUrl.toString());
   }
 }

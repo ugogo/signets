@@ -7,6 +7,10 @@ import { getSession, signInWithGoogle } from '@/lib/auth-client';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const session = await getSession();
     if (session) {
       throw redirect({ to: '/' });

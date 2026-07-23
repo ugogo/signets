@@ -27,6 +27,11 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
   beforeLoad: async () => {
+    // Session cookies live on the API origin; skip SSR checks on the web worker.
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const session = await getSession();
     if (!session) {
       throw redirect({ to: '/login' });

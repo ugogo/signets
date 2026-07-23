@@ -1,11 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { bearer } from 'better-auth/plugins';
 
 import { type Env, parseWebOrigins } from '../config/env.schema.js';
-
-const authPrisma = new PrismaClient();
 
 export type Auth = ReturnType<typeof createAuth>;
 
@@ -18,11 +17,12 @@ export function createAuth(
     | 'GOOGLE_CLIENT_SECRET'
     | 'WEB_ORIGIN'
   >,
+  prisma: PrismaClient,
 ) {
   return betterAuth({
     basePath: '/api/auth',
     baseURL: config.BETTER_AUTH_URL,
-    database: prismaAdapter(authPrisma, {
+    database: prismaAdapter(prisma, {
       provider: 'postgresql',
     }),
     plugins: [bearer()],
