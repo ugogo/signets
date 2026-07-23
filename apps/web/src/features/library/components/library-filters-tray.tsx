@@ -1,12 +1,12 @@
 import { Check, Copy, Heart, LayoutGrid, Map } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from 'pickle-ui/button';
+import { Group } from 'pickle-ui/group';
+import { InputGroup } from 'pickle-ui/input-group';
 import { Slider } from 'pickle-ui/slider';
 import { Text } from 'pickle-ui/text';
 import { useState } from 'react';
 
-import { Input, InputGroup } from '@/components/input-group';
-import { SegmentControl } from '@/components/segment-control';
 import { type ViewMode } from '@/features/library/lib/library-search-params';
 import { REDUCED_MOTION_FADE } from '@/lib/motion';
 import { cn } from '@/lib/utils';
@@ -65,23 +65,27 @@ export function LibraryFiltersTray({
           <Text as="p" tone="muted" variant="small">
             View
           </Text>
-          <SegmentControl
-            aria-label="View mode"
-            onValueChange={onViewModeChange}
-            options={[
-              {
-                icon: <LayoutGrid className="size-4" />,
-                label: 'Wall',
-                value: 'wall',
-              },
-              {
-                icon: <Map className="size-4" />,
-                label: 'Canvas',
-                value: 'canvas',
-              },
-            ]}
-            value={viewMode}
-          />
+          <Group aria-label="View mode">
+            <Button
+              aria-pressed={viewMode === 'wall'}
+              onClick={() => onViewModeChange('wall')}
+              size="sm"
+              variant={viewMode === 'wall' ? 'secondary' : 'outline'}
+            >
+              <LayoutGrid className="size-4" />
+              Wall
+            </Button>
+            <Group.Separator />
+            <Button
+              aria-pressed={viewMode === 'canvas'}
+              onClick={() => onViewModeChange('canvas')}
+              size="sm"
+              variant={viewMode === 'canvas' ? 'secondary' : 'outline'}
+            >
+              <Map className="size-4" />
+              Canvas
+            </Button>
+          </Group>
         </div>
 
         <div className="space-y-1">
@@ -92,7 +96,7 @@ export function LibraryFiltersTray({
             aria-label="Favorites only"
             aria-pressed={favoritesOnly}
             onClick={() => onFavoritesOnlyChange(!favoritesOnly)}
-            size="sm"
+            size="icon"
             variant={favoritesOnly ? 'secondary' : 'outline'}
           >
             <Heart
@@ -190,7 +194,7 @@ export function LibraryFiltersTray({
           token.
         </Text>
         <InputGroup>
-          <Input
+          <InputGroup.Input
             aria-label="Sync token for curation"
             autoComplete="off"
             className="touch-input font-mono text-xs"

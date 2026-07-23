@@ -79,7 +79,7 @@ export function ShotCard({
                   event.stopPropagation();
                   onToggleFavorite?.(shot);
                 }}
-                size="sm"
+                size="icon-xs"
                 variant="ghost"
               >
                 <Star

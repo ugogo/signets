@@ -2,10 +2,9 @@ import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Badge } from 'pickle-ui/badge';
 import { Button } from 'pickle-ui/button';
+import { InputGroup } from 'pickle-ui/input-group';
 import { Text } from 'pickle-ui/text';
 import { type ReactNode, useEffect, useState } from 'react';
-
-import { Input, InputGroup } from '@/components/input-group';
 import {
   DEFAULT_DENSITY,
   DEFAULT_VIEW_MODE,
@@ -50,8 +49,8 @@ const FILTER_ICON_MOTION = {
 /**
  * Library page frame: floating search pill, filters tray, and main content slot.
  *
- * Border rule: one edge per surface. Pill owns the ring; InputGroup owns
- * the search shell; chips use shadow-border.
+ * Border rule: one edge per surface. Pill owns the ring; pickle InputGroup owns
+ * the search shell; chips use secondary/outline variants.
  */
 export function LibraryShell({
   authors,
@@ -145,7 +144,7 @@ export function LibraryShell({
               <InputGroup.Addon>
                 <Search className="size-4 text-muted-foreground" />
               </InputGroup.Addon>
-              <Input
+              <InputGroup.Input
                 aria-label="Search caption or author"
                 className="touch-input"
                 onChange={(event) => onSearchChange(event.target.value)}
@@ -177,7 +176,9 @@ export function LibraryShell({
                 </motion.span>
               </AnimatePresence>
               {activeFilterCount > 0 && !filtersOpen ? (
-                <Badge variant="secondary">{activeFilterCount}</Badge>
+                <Badge size="sm" variant="secondary">
+                  {activeFilterCount}
+                </Badge>
               ) : null}
             </Button>
 

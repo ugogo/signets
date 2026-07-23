@@ -13,6 +13,7 @@ const config = defineConfig(({ mode }) => ({
       'pickle-ui/badge',
       'pickle-ui/button',
       'pickle-ui/checkbox',
+      'pickle-ui/group',
       'pickle-ui/input',
       'pickle-ui/input-group',
       'pickle-ui/select',

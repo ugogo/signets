@@ -14,20 +14,18 @@ Before adding a new wrapper, check this folder — avoid duplicating the same pi
 
 | Component | Use when |
 |---|---|
-| `input-group` | Search / token fields with a single shadow-border shell |
-| `segment-control` | Mutually exclusive toggles (e.g. wall / canvas view) |
 | `stagger-entrance` | Staggered empty-state / page entrance motion |
 | `app-providers` | Query client + theme at the app root |
 | `not-found` | 404 page |
 
 Theme controls live in `@/features/theme/*`.
 
+Import pickle-ui **InputGroup** and **Group** directly for search fields, toggles, and fused toolbars.
+
 ## Pickle-ui backlog
 
 Candidates to upstream into pickle-ui (Signets uses local wrappers until then):
 
-1. **SegmentControl** / toggle group
-2. **Dialog** (modal shell with focus trap)
-3. **Skeleton**
-4. **EmptyState**
-5. **Chip** / filter pill variant on `Button`
+1. **Dialog** (modal shell with focus trap)
+2. **Skeleton**
+3. **EmptyState**

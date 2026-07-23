@@ -26,7 +26,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       className={className}
       onClick={toggleTheme}
-      size="sm"
+      size="icon"
       variant="outline"
     >
       <AnimatePresence initial={false} mode="popLayout">

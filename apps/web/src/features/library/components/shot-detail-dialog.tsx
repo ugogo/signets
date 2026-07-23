@@ -171,7 +171,7 @@ export function ShotDetailDialog({
                   aria-pressed={shot.isFavorite}
                   disabled={isFavoritePending || isDeleting}
                   onClick={onToggleFavorite}
-                  size="sm"
+                  size="icon"
                   variant={shot.isFavorite ? 'secondary' : 'outline'}
                 >
                   <Star
@@ -185,7 +185,7 @@ export function ShotDetailDialog({
                   aria-label="Delete shot"
                   disabled={isDeleting || isFavoritePending}
                   onClick={onDelete}
-                  size="sm"
+                  size="icon"
                   variant="outline"
                 >
                   <Trash2 className="size-4" />
@@ -201,7 +201,7 @@ export function ShotDetailDialog({
             <Button
               aria-label="Close"
               onClick={onDismiss}
-              size="sm"
+              size="icon"
               variant="ghost"
             >
               <X className="size-4" />
