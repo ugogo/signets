@@ -1,15 +1,10 @@
 import type { Shot } from '@signets/shared';
 
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useQueryStates } from 'nuqs';
 import { useCallback, useMemo, useState } from 'react';
 
-import {
-  useDeleteShot,
-  useToggleShotFavorite,
-} from '@/features/curation/curation-mutations';
-import { useCurationToken } from '@/features/curation/use-curation-token';
 import { LibraryShell } from '@/features/library/components/library-shell';
 import { ShotCanvas } from '@/features/library/components/shot-canvas';
 import { ShotDetailDialog } from '@/features/library/components/shot-detail-dialog';
@@ -22,10 +17,21 @@ import {
   useInfiniteShots,
   useShotAuthors,
 } from '@/features/library/lib/queries';
+import {
+  useDeleteShot,
+  useToggleShotFavorite,
+} from '@/features/library/lib/shot-mutations';
+import { getSession } from '@/lib/auth-client';
 import { REDUCED_MOTION_FADE, UI_SPRING, VIEW_EXIT } from '@/lib/motion';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 export const Route = createFileRoute('/')({
+  beforeLoad: async () => {
+    const session = await getSession();
+    if (!session) {
+      throw redirect({ to: '/login' });
+    }
+  },
   component: Home,
   validateSearch: librarySearchSchema,
 });
@@ -34,8 +40,6 @@ function Home() {
   const [filters, setFilters] = useQueryStates(librarySearchParams);
   const { author, density, favorites, search, viewMode } = filters;
   const [focusedShot, setFocusedShot] = useState<null | Shot>(null);
-  const [tokenDraft, setTokenDraft] = useState('');
-  const { clearToken, isCurator, saveToken, token } = useCurationToken();
   const toggleFavorite = useToggleShotFavorite();
   const deleteShot = useDeleteShot();
 
@@ -166,7 +170,7 @@ function Home() {
             }
             fetchNextPage={handleFetchNextPage}
             hasNextPage={hasNextPage}
-            isCurator={isCurator}
+            isCurator
             isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
             onAuthorToggle={toggleAuthor}
@@ -183,28 +187,17 @@ function Home() {
   return (
     <LibraryShell
       authors={authors}
-      curationToken={tokenDraft ?? token ?? ''}
       density={density}
       favoritesOnly={favorites}
-      isCurator={isCurator}
       onAuthorToggle={toggleAuthor}
-      onClearCurationToken={() => {
-        clearToken();
-        setTokenDraft('');
-      }}
       onCopyLink={() => {
         void handleCopyLink();
       }}
-      onCurationTokenChange={setTokenDraft}
       onDensityChange={(nextDensity) => {
         void setFilters({ density: nextDensity });
       }}
       onFavoritesOnlyChange={(nextFavoritesOnly) => {
         void setFilters({ favorites: nextFavoritesOnly });
-      }}
-      onSaveCurationToken={() => {
-        saveToken(tokenDraft ?? token ?? '');
-        setTokenDraft('');
       }}
       onSearchChange={(nextSearch) => {
         void setFilters({ search: nextSearch || null });
@@ -225,7 +218,7 @@ function Home() {
             favoritePendingShotId={
               toggleFavorite.isPending ? toggleFavorite.variables : null
             }
-            isCurator={isCurator}
+            isCurator
             isDeleting={deleteShot.isPending}
             key={focusedShot.id}
             onAuthorToggle={toggleAuthor}

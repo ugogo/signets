@@ -3,7 +3,14 @@
   "name": "Signets Sync",
   "description": "Sync X bookmarks into Signets",
   "version": "0.1.0",
-  "permissions": ["storage", "scripting", "activeTab", "tabs", "sidePanel"],
+  "permissions": [
+    "identity",
+    "storage",
+    "scripting",
+    "activeTab",
+    "tabs",
+    "sidePanel"
+  ],
   "side_panel": {
     "default_path": "popup.html"
   },

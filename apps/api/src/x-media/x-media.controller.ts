@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 
 import type { XMediaQuery } from './x-media.schema.js';
 
@@ -9,6 +10,7 @@ import { zodPipe } from '../common/zod-validation.pipe.js';
 import { xMediaQuerySchema } from './x-media.schema.js';
 import { XMediaService } from './x-media.service.js';
 
+@AllowAnonymous()
 @Controller('x/media')
 export class XMediaController {
   constructor(private readonly xMediaService: XMediaService) {}

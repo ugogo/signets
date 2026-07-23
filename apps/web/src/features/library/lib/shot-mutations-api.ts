@@ -2,13 +2,11 @@ import type { Shot } from '@signets/shared';
 
 import { shotSchema } from '@signets/shared';
 
-import { getCurationToken } from './curation-token';
-
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+import { apiFetchOptions, apiUrl } from '@/lib/api-fetch';
 
 export async function deleteShot(id: string): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}/shots/${id}`, {
-    headers: authHeaders(),
+  const response = await fetch(apiUrl(`/shots/${id}`), {
+    ...apiFetchOptions,
     method: 'DELETE',
   });
 
@@ -18,8 +16,8 @@ export async function deleteShot(id: string): Promise<void> {
 }
 
 export async function toggleShotFavorite(id: string): Promise<Shot> {
-  const response = await fetch(`${apiBaseUrl}/shots/${id}/favorite`, {
-    headers: authHeaders(),
+  const response = await fetch(apiUrl(`/shots/${id}/favorite`), {
+    ...apiFetchOptions,
     method: 'PATCH',
   });
 
@@ -29,17 +27,6 @@ export async function toggleShotFavorite(id: string): Promise<Shot> {
 
   const body: unknown = await response.json();
   return shotSchema.parse(body);
-}
-
-function authHeaders(): HeadersInit {
-  const token = getCurationToken();
-  if (!token) {
-    throw new Error('Sync token is not configured.');
-  }
-
-  return {
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 async function readErrorMessage(response: Response): Promise<string> {

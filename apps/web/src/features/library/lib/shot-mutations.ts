@@ -2,7 +2,10 @@ import type { Shot } from '@signets/shared';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { deleteShot, toggleShotFavorite } from './curation-api';
+import {
+  deleteShot,
+  toggleShotFavorite,
+} from '@/features/library/lib/shot-mutations-api';
 
 export function useDeleteShot() {
   const queryClient = useQueryClient();

@@ -13,6 +13,7 @@ import {
 } from '@/features/library/lib/library-search-params';
 import { useScrollCompact } from '@/features/library/lib/use-scroll-compact';
 import { ThemeToggle } from '@/features/theme/theme-toggle';
+import { signOut } from '@/lib/auth-client';
 import { REDUCED_MOTION_FADE, UI_SPRING } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
@@ -21,17 +22,12 @@ import { LibraryFiltersTray } from './library-filters-tray';
 export interface LibraryShellProps {
   authors: string[];
   children: ReactNode;
-  curationToken: string;
   density: number;
   favoritesOnly: boolean;
-  isCurator: boolean;
   onAuthorToggle: (authorHandle: string) => void;
-  onClearCurationToken: () => void;
   onCopyLink: () => void;
-  onCurationTokenChange: (token: string) => void;
   onDensityChange: (density: number) => void;
   onFavoritesOnlyChange: (favoritesOnly: boolean) => void;
-  onSaveCurationToken: () => void;
   onSearchChange: (search: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   search: string;
@@ -56,17 +52,12 @@ const FILTER_ICON_MOTION = {
 export function LibraryShell({
   authors,
   children,
-  curationToken,
   density,
   favoritesOnly,
-  isCurator,
   onAuthorToggle,
-  onClearCurationToken,
   onCopyLink,
-  onCurationTokenChange,
   onDensityChange,
   onFavoritesOnlyChange,
-  onSaveCurationToken,
   onSearchChange,
   onViewModeChange,
   search,
@@ -109,6 +100,12 @@ export function LibraryShell({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [filtersOpen]);
+
+  const handleSignOut = () => {
+    void signOut().then(() => {
+      window.location.href = '/login';
+    });
+  };
 
   return (
     <div
@@ -206,17 +203,13 @@ export function LibraryShell({
               >
                 <LibraryFiltersTray
                   authors={authors}
-                  curationToken={curationToken}
                   density={density}
                   favoritesOnly={favoritesOnly}
-                  isCurator={isCurator}
                   onAuthorToggle={onAuthorToggle}
-                  onClearCurationToken={onClearCurationToken}
                   onCopyLink={onCopyLink}
-                  onCurationTokenChange={onCurationTokenChange}
                   onDensityChange={onDensityChange}
                   onFavoritesOnlyChange={onFavoritesOnlyChange}
-                  onSaveCurationToken={onSaveCurationToken}
+                  onSignOut={handleSignOut}
                   onViewModeChange={onViewModeChange}
                   selectedAuthor={selectedAuthor}
                   viewMode={viewMode}

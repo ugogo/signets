@@ -1,21 +1,23 @@
 import type { SyncState } from './constants.js';
 import type { LogEntry } from './log.js';
 
+import { signInWithGoogle, signOut } from './auth.js';
 import {
   isBackgroundBroadcast,
   isDryRunResponse,
   isSyncNowResponse,
   isSyncStateResponse,
 } from './messages.js';
-import { normalizeSyncToken } from './settings.js';
+import { isSignedIn, loadSettings } from './settings.js';
 
 const apiUrlInput = document.querySelector<HTMLInputElement>('#apiUrl')!;
 const apiUrlWrapper =
   document.querySelector<HTMLLabelElement>('#apiUrlWrapper')!;
-const syncTokenInput = document.querySelector<HTMLInputElement>('#syncToken')!;
 const envProdButton = document.querySelector<HTMLButtonElement>('#envProd')!;
 const envDevButton = document.querySelector<HTMLButtonElement>('#envDev')!;
 const saveButton = document.querySelector<HTMLButtonElement>('#save')!;
+const signInButton = document.querySelector<HTMLButtonElement>('#signIn')!;
+const signOutButton = document.querySelector<HTMLButtonElement>('#signOut')!;
 const syncButton = document.querySelector<HTMLButtonElement>('#sync')!;
 const dryRunButton = document.querySelector<HTMLButtonElement>('#dryRun')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
@@ -72,6 +74,16 @@ function loadSyncState(): void {
       }
     }
   });
+}
+
+async function refreshAuthUi(): Promise<void> {
+  const settings = await loadSettings();
+  const signedIn = isSignedIn(settings);
+  signInButton.classList.toggle('hidden', signedIn);
+  signOutButton.classList.toggle('hidden', !signedIn);
+  syncButton.disabled = !signedIn;
+  dryRunButton.disabled = !signedIn;
+  updateSettingsSection(signedIn);
 }
 
 function renderLogs(logs: LogEntry[]): void {
@@ -145,10 +157,10 @@ function startCapture(options: {
   begin();
 }
 
-function updateSettingsSection(hasToken: boolean): void {
-  if (hasToken) {
+function updateSettingsSection(signedIn: boolean): void {
+  if (signedIn) {
     settingsSection.open = false;
-    settingsSummary.textContent = 'Settings · sync token saved';
+    settingsSummary.textContent = 'Settings · signed in';
     return;
   }
 
@@ -161,8 +173,6 @@ function updateSyncButtons(state: SyncState): void {
   syncButton.classList.toggle('hidden', inProgress);
   dryRunButton.classList.toggle('hidden', inProgress);
   stopButton.classList.toggle('hidden', state !== 'scrolling');
-  syncButton.disabled = inProgress;
-  dryRunButton.disabled = inProgress;
   saveButton.disabled = inProgress;
 
   if (inProgress) {
@@ -180,16 +190,42 @@ envDevButton.addEventListener('click', () => {
 
 saveButton.addEventListener('click', () => {
   void (async () => {
-    const syncToken = normalizeSyncToken(syncTokenInput.value);
-
     await chrome.storage.sync.set({
       apiEnv,
       apiUrl: apiUrlInput.value.trim(),
-      syncToken,
     });
 
-    updateSettingsSection(syncToken.length > 0);
     setStatus('Settings saved.', 'success');
+  })();
+});
+
+signInButton.addEventListener('click', () => {
+  void (async () => {
+    signInButton.disabled = true;
+    setStatus('Opening Google sign-in…');
+
+    try {
+      const settings = await loadSettings();
+      const sessionToken = await signInWithGoogle(settings.apiUrl);
+      await chrome.storage.sync.set({ sessionToken });
+      await refreshAuthUi();
+      setStatus('Signed in.', 'success');
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : 'Sign-in failed.',
+        'error',
+      );
+    } finally {
+      signInButton.disabled = false;
+    }
+  })();
+});
+
+signOutButton.addEventListener('click', () => {
+  void (async () => {
+    await signOut();
+    await refreshAuthUi();
+    setStatus('Signed out.', 'success');
   })();
 });
 
@@ -279,25 +315,14 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
-void chrome.storage.sync
-  .get(['apiEnv', 'apiUrl', 'syncToken'])
-  .then((stored) => {
-    setApiEnv(stored.apiEnv === 'dev' ? 'dev' : 'prod');
-    if (typeof stored.apiUrl === 'string') {
-      apiUrlInput.value = stored.apiUrl;
-    }
+void chrome.storage.sync.get(['apiEnv', 'apiUrl']).then(async (stored) => {
+  setApiEnv(stored.apiEnv === 'dev' ? 'dev' : 'prod');
+  if (typeof stored.apiUrl === 'string') {
+    apiUrlInput.value = stored.apiUrl;
+  }
 
-    const syncToken =
-      typeof stored.syncToken === 'string'
-        ? normalizeSyncToken(stored.syncToken)
-        : '';
-
-    if (syncToken) {
-      syncTokenInput.value = syncToken;
-    }
-
-    updateSettingsSection(syncToken.length > 0);
-  });
+  await refreshAuthUi();
+});
 
 loadLogs();
 loadSyncState();

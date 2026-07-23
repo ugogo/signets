@@ -12,7 +12,6 @@ import {
   Param,
   Patch,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -20,8 +19,9 @@ import {
   listShotsQueryParsedSchema,
   shotIdParamSchema,
 } from '@signets/shared';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 
-import { SyncTokenGuard } from '../auth/sync-token.guard.js';
+import { requireUserId } from '../auth/session-user.js';
 import { zodPipe } from '../common/zod-validation.pipe.js';
 import { ShotsService } from './shots.service.js';
 
@@ -31,25 +31,32 @@ export class ShotsController {
 
   @Get()
   list(
+    @Session() session: UserSession,
     @Query(zodPipe(listShotsQueryParsedSchema))
     filters: ListShotsQuery,
   ) {
-    return this.shotsService.list(filters);
+    return this.shotsService.list(requireUserId(session), filters);
   }
 
   @Get('authors')
   listAuthors(
+    @Session() session: UserSession,
     @Query(zodPipe(listShotAuthorsQueryParsedSchema))
     filters: ListShotAuthorsQuery,
   ) {
-    return this.shotsService.listAuthors(filters);
+    return this.shotsService.listAuthors(requireUserId(session), filters);
   }
 
   @Delete(':id')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @UseGuards(SyncTokenGuard)
-  async remove(@Param(zodPipe(shotIdParamSchema)) params: ShotIdParam) {
-    const deleted = await this.shotsService.remove(params.id);
+  async remove(
+    @Session() session: UserSession,
+    @Param(zodPipe(shotIdParamSchema)) params: ShotIdParam,
+  ) {
+    const deleted = await this.shotsService.remove(
+      requireUserId(session),
+      params.id,
+    );
     if (!deleted) {
       throw new NotFoundException('Shot not found');
     }
@@ -58,9 +65,14 @@ export class ShotsController {
 
   @Patch(':id/favorite')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @UseGuards(SyncTokenGuard)
-  async toggleFavorite(@Param(zodPipe(shotIdParamSchema)) params: ShotIdParam) {
-    const shot = await this.shotsService.toggleFavorite(params.id);
+  async toggleFavorite(
+    @Session() session: UserSession,
+    @Param(zodPipe(shotIdParamSchema)) params: ShotIdParam,
+  ) {
+    const shot = await this.shotsService.toggleFavorite(
+      requireUserId(session),
+      params.id,
+    );
     if (!shot) {
       throw new NotFoundException('Shot not found');
     }

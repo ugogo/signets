@@ -185,15 +185,8 @@
         API URL
         <input id="apiUrl" value="http://localhost:3001" />
       </label>
-      <label>
-        Sync token
-        <input
-          id="syncToken"
-          type="password"
-          placeholder="Same as SYNC_TOKEN in apps/api/.env"
-          autocomplete="off"
-        />
-      </label>
+      <button id="signIn" type="button">Sign in with Google</button>
+      <button id="signOut" type="button" class="hidden">Sign out</button>
       <button id="save">Save settings</button>
     </details>
     <button id="sync" style="margin-top: 8px">Sync bookmarks</button>
