@@ -5,6 +5,7 @@ import { Button } from 'pickle-ui/button';
 import { InputGroup } from 'pickle-ui/input-group';
 import { Text } from 'pickle-ui/text';
 import { type ReactNode, useEffect, useState } from 'react';
+
 import {
   DEFAULT_DENSITY,
   DEFAULT_VIEW_MODE,
